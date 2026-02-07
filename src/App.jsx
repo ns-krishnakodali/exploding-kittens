@@ -1,7 +1,5 @@
-import "./App.css";
-
 function App() {
-  return <h1 class="text-3xl font-bold">Exploding Kittens!</h1>;
+  return <h1 class="text-3xl font-bold underline">Exploding Kittens!</h1>;
 }
 
 export default App;
