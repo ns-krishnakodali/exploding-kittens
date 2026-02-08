@@ -1,82 +1,61 @@
 import { useState } from 'react';
 import { Bomb } from 'lucide-react';
 
+import { Toast } from './components';
+import { GAME_STATES } from './constants';
 import { LandingPage, LobbyPage } from './pages';
-
-// --- Constants ---
-const APP_STATES = {
-  LANDING: 'LANDING',
-  LOBBY: 'LOBBY',
-  GAME: 'GAME',
-};
+import { addPlayerToLobby, createLobby, getLobbyId } from './services';
 
 const App = () => {
-  const [user, setUser] = useState(null);
-  const [gameState, setGameState] = useState(APP_STATES.LANDING);
-  const [currentGame, setCurrentGame] = useState(null);
+  const [lobbyId, setLobbyId] = useState(null);
+  const [gameId, setGameId] = useState(null);
+  const [gameState, setGameState] = useState(GAME_STATES.LANDING);
+  const [playerName, setPlayerName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  // --- Mock Handlers (Local State Only) ---
-  const handleCreateGame = (playerName, pin) => {
+  const handleCreateGame = async (newPlayerName, pin) => {
     setLoading(true);
-    // Simulate minor delay for feel
-    setTimeout(() => {
-      const mockUid = 'user-' + Math.random().toString(36).substr(2, 9);
-      const gameId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      const newPlayer = { uid: mockUid, name: playerName, pin: pin, isHost: true };
-      const newGame = {
-        id: gameId,
-        hostId: mockUid,
-        status: 'lobby',
-        players: [newPlayer],
-        createdAt: Date.now(),
-      };
+    const [newLobbyId, newGameId] = await createLobby();
+    await addPlayerToLobby(newLobbyId, newPlayerName, pin, true);
 
-      setUser(newPlayer);
-      setCurrentGame(newGame);
-      setGameState(APP_STATES.LOBBY);
-      setLoading(false);
-    }, 800);
+    setLobbyId(newLobbyId);
+    setPlayerName(newPlayerName);
+    setGameId(newGameId);
+    setGameState(GAME_STATES.LOBBY);
+    setLoading(false);
   };
 
-  const handleJoinGame = (gameId, playerName, pin) => {
+  const handleJoinGame = async (displayCode, newPlayerName, pin) => {
     setLoading(true);
-    setTimeout(() => {
-      const mockUid = 'user-' + Math.random().toString(36).substr(2, 9);
-      const newPlayer = { uid: mockUid, name: playerName, pin: pin, isHost: false };
 
-      // Since there is no backend, we simulate joining a game
-      // by creating a mock lobby state populated with some dummy players
-      const mockGame = {
-        id: gameId.toUpperCase(),
-        hostId: 'host-123',
-        status: 'lobby',
-        players: [
-          { uid: 'host-123', name: 'GameMaster', pin: '0000', isHost: true },
-          { uid: 'player-2', name: 'Sir-Purrs-A-Lot', pin: '1111', isHost: false },
-          newPlayer,
-        ],
-        createdAt: Date.now(),
-      };
+    try {
+      const existingLobbyId = await getLobbyId(displayCode);
+      const status = await addPlayerToLobby(existingLobbyId, newPlayerName, pin);
+      if (!status) {
+        setToast({ message: 'Something went wrong, try again', type: 'error' });
+        return;
+      }
 
-      setUser(newPlayer);
-      setCurrentGame(mockGame);
-      setGameState(APP_STATES.LOBBY);
+      setLobbyId(existingLobbyId);
+      setPlayerName(newPlayerName);
+      setGameId(displayCode);
+      setGameState(GAME_STATES.LOBBY);
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'An unknown error occurred', type: 'error' });
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   const handleStartGame = () => {
-    if (!currentGame) return;
-    setGameState(APP_STATES.GAME);
-    setCurrentGame({ ...currentGame, status: 'active' });
+    setGameState(GAME_STATES.GAME);
   };
 
   const handleLeaveGame = () => {
-    setGameState(APP_STATES.LANDING);
-    setCurrentGame(null);
-    setUser(null);
+    setGameState(GAME_STATES.LANDING);
   };
 
   if (loading) {
@@ -94,19 +73,21 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-[#F8F4E1] text-black font-sans selection:bg-red-200">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <main className="max-w-6xl mx-auto px-4 py-2">
-        {gameState === APP_STATES.LANDING && (
+        {gameState === GAME_STATES.LANDING && (
           <LandingPage onCreate={handleCreateGame} onJoin={handleJoinGame} />
         )}
-        {gameState === APP_STATES.LOBBY && (
+        {gameState === GAME_STATES.LOBBY && (
           <LobbyPage
-            game={currentGame}
-            userId={user?.uid}
+            lobbyId={lobbyId}
+            gameId={gameId}
+            playerName={playerName}
             onStart={handleStartGame}
             onLeave={handleLeaveGame}
           />
         )}
-        {gameState === APP_STATES.GAME && <GamePlaceholder onLeave={handleLeaveGame} />}
+        {gameState === GAME_STATES.GAME && <GamePlaceholder onLeave={handleLeaveGame} />}
       </main>
     </div>
   );

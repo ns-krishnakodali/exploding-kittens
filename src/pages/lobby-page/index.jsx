@@ -1,20 +1,62 @@
-import { Play, LogOut, Copy, Crown, Zap, Sword } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, Copy, Crown, LogOut, Play, Sword, Zap } from 'lucide-react';
 
-export const LobbyPage = ({ game, userId, onStart, onLeave }) => {
-  const isHost = game.hostId === userId;
-  const playerCount = game.players.length;
+import { subscribeToLobbyPlayers } from '../../services';
 
-  const copyCode = () => {
-    const tempInput = document.createElement('input');
-    tempInput.value = game.id;
-    document.body.appendChild(tempInput);
-    tempInput.select();
-    document.execCommand('copy');
-    document.body.removeChild(tempInput);
+export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave }) => {
+  const [lobbyPlayers, setLobbyPlayers] = useState({});
+
+  useEffect(() => {
+    const unsubscribe = subscribeToLobbyPlayers(lobbyId, (players) => {
+      setLobbyPlayers(players);
+    });
+
+    return unsubscribe;
+  }, [lobbyId]);
+
+  const [copied, setCopied] = useState(false);
+
+  const copyCode = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(gameId);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = gameId;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }
+      }
+    } catch (err) {
+      console.log('Copy Failed', err);
+    }
   };
 
+  const isHost =
+    !!playerName && !!lobbyPlayers[playerName] && lobbyPlayers[playerName].host === true;
+
+  const orderedPlayers = Object.entries(lobbyPlayers)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((p1, p2) => {
+      if (p1.host && !p2.host) return -1;
+      if (!p1.host && p2.host) return 1;
+      return p1.joinedAt - p2.joinedAt;
+    });
+
   return (
-    // <div className="py-8 max-w-5xl mx-auto space-y-12 animate-in slide-in-from-bottom-12 duration-500">
     <div className="px-2 py-8 md:px-0 max-w-5xl mx-auto space-y-12 animate-in slide-in-from-bottom-12 duration-500">
       <div className="flex flex-col md:flex-row gap-8">
         <div className="grow space-y-6">
@@ -35,39 +77,53 @@ export const LobbyPage = ({ game, userId, onStart, onLeave }) => {
                 </p>
               </div>
               <div className="text-center md:text-right">
-                <p className="text-sm font-black uppercase text-zinc-400 mb-1">Game Code</p>
-                <div className="bg-black text-white px-6 py-3 rounded-2xl font-black text-3xl tracking-widest flex items-center gap-3">
-                  {game.id}
-                  <Copy
-                    onClick={copyCode}
-                    size={20}
-                    className="text-zinc-400 cursor-pointer hover:text-white transition-colors"
-                  />
-                </div>
+                <p className="text-sm font-black uppercase text-zinc-400 mb-1 mr-1">Game Code</p>
+                <button
+                  className="bg-black text-white px-6 py-3 rounded-2xl font-black text-3xl tracking-widest flex items-center gap-3 min-w-[8ch]"
+                  type="button"
+                  onClick={copyCode}
+                >
+                  {copied ? (
+                    <>
+                      COPIED
+                      <Check size={20} className="text-green-400 transition-colors" />
+                    </>
+                  ) : (
+                    <>
+                      {gameId}
+                      <Copy
+                        size={20}
+                        className="text-zinc-400 cursor-pointer hover:text-white transition-colors"
+                      />
+                    </>
+                  )}
+                </button>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {game?.players.map((player) => (
+              {orderedPlayers.map(({ name, host }) => (
                 <div
-                  key={player.uid}
+                  key={name}
                   className={`relative p-3 rounded-4xl border-4 border-black transition-all
-                    ${player.uid === userId ? 'bg-red-50 text-black border-red-600' : 'bg-zinc-50'}`}
+                  ${host ? 'bg-red-50 text-black border-red-600' : 'bg-zinc-50'}`}
                 >
                   <div className="flex flex-col items-center text-center gap-1">
                     <div
                       className={`w-16 h-16 rounded-2xl border-4 border-black flex items-center justify-center text-2xl font-black shadow-[4px_4px_0_0_#000]
-                        ${player.isHost ? 'bg-yellow-400' : 'bg-white'}`}
+                      ${host ? 'bg-yellow-400' : 'bg-white'}`}
                     >
-                      {player.name?.[0].toUpperCase()}
+                      {name?.[0].toUpperCase()}
                     </div>
+
                     <span className="font-black italic uppercase text-sm truncate w-full mt-1">
-                      {player.name}
+                      {name}
                     </span>
-                    {player.isHost && <Crown size={14} className="text-red-600 fill-red-600" />}
+
+                    {host && <Crown size={14} className="text-red-600 fill-red-600" />}
                   </div>
                 </div>
               ))}
-              {Array.from({ length: 10 - playerCount }).map((_, idx) => (
+              {Array.from({ length: 10 - Object.keys(lobbyPlayers).length }).map((_, idx) => (
                 <div
                   key={idx}
                   className="p-3 rounded-4xl border-4 border-black border-dotted opacity-20 flex flex-col items-center justify-center gap-3"
@@ -94,7 +150,7 @@ export const LobbyPage = ({ game, userId, onStart, onLeave }) => {
               {isHost ? (
                 <button
                   onClick={onStart}
-                  disabled={playerCount < 2}
+                  disabled={Object.keys(lobbyPlayers).length < 2}
                   className="w-full bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-white font-black italic py-5 rounded-2xl border-2 border-white/20 flex items-center justify-center gap-3 transition-all"
                 >
                   <Play size={24} fill="currentColor" /> START MATCH
