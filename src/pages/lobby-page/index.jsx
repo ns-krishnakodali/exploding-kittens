@@ -58,7 +58,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave }) => 
 
   return (
     <div className="px-2 py-8 md:px-0 max-w-5xl mx-auto space-y-12 animate-in slide-in-from-bottom-12 duration-500">
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-8 mt-2">
         <div className="grow space-y-6">
           <div className="bg-white border-4 border-black rounded-[3rem] p-8 shadow-[8px_8px_0_0_#000] relative">
             <div

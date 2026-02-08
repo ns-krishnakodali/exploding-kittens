@@ -1,4 +1,4 @@
-import { get, push, ref, set } from 'firebase/database';
+import { get, push, ref, set, update } from 'firebase/database';
 
 import { db } from '../firebase';
 import { generateUniqueCode } from '../utils';
@@ -31,4 +31,9 @@ export const getLobbyId = async (displayCode) => {
 
   const lobbyId = snapshot.val();
   return lobbyId;
+};
+
+export const updateLobbyStatus = async (lobbyId, status) => {
+  const lobbyRef = ref(db, `lobby/${lobbyId}`);
+  await update(lobbyRef, { status });
 };

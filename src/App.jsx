@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Bomb } from 'lucide-react';
 
 import { Toast } from './components';
-import { GAME_STATES } from './constants';
-import { LandingPage, LobbyPage } from './pages';
-import { addPlayerToLobby, createLobby, getLobbyId } from './services';
+import { GAME_STATE, LOBBY_STATUS } from './constants';
+import { GameEngine, LandingPage, LobbyPage } from './pages';
+import { addPlayerToLobby, createLobby, getLobbyId, updateLobbyStatus } from './services';
 
 const App = () => {
   const [lobbyId, setLobbyId] = useState(null);
   const [gameId, setGameId] = useState(null);
-  const [gameState, setGameState] = useState(GAME_STATES.LANDING);
+  const [gameState, setGameState] = useState(GAME_STATE.LANDING);
   const [playerName, setPlayerName] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
@@ -18,13 +18,13 @@ const App = () => {
     setLoading(true);
 
     const [newLobbyId, newGameId] = await createLobby();
-    await addPlayerToLobby(newLobbyId, newPlayerName, pin, true);
+    const gameStateInfo = await addPlayerToLobby(newLobbyId, newPlayerName, pin, true);
 
+    setLoading(false);
     setLobbyId(newLobbyId);
     setPlayerName(newPlayerName);
     setGameId(newGameId);
-    setGameState(GAME_STATES.LOBBY);
-    setLoading(false);
+    setGameState(gameStateInfo);
   };
 
   const handleJoinGame = async (displayCode, newPlayerName, pin) => {
@@ -32,16 +32,18 @@ const App = () => {
 
     try {
       const existingLobbyId = await getLobbyId(displayCode);
-      const status = await addPlayerToLobby(existingLobbyId, newPlayerName, pin);
-      if (!status) {
+      const gameStateInfo = await addPlayerToLobby(existingLobbyId, newPlayerName, pin);
+
+      if (gameStateInfo === GAME_STATE.LANDING) {
         setToast({ message: 'Something went wrong, try again', type: 'error' });
+        setGameState(gameStateInfo);
         return;
       }
 
       setLobbyId(existingLobbyId);
       setPlayerName(newPlayerName);
       setGameId(displayCode);
-      setGameState(GAME_STATES.LOBBY);
+      setGameState(gameStateInfo);
     } catch (err) {
       console.error(err);
       setToast({ message: 'An unknown error occurred', type: 'error' });
@@ -51,11 +53,12 @@ const App = () => {
   };
 
   const handleStartGame = () => {
-    setGameState(GAME_STATES.GAME);
+    updateLobbyStatus(lobbyId, LOBBY_STATUS.IN_GAME);
+    setGameState(GAME_STATE.GAME);
   };
 
   const handleLeaveGame = () => {
-    setGameState(GAME_STATES.LANDING);
+    setGameState(GAME_STATE.LANDING);
   };
 
   if (loading) {
@@ -72,13 +75,13 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F4E1] text-black font-sans selection:bg-red-200">
+    <div className="text-black font-sans selection:bg-red-200">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <main className="max-w-6xl mx-auto px-4 py-2">
-        {gameState === GAME_STATES.LANDING && (
+      <main className="mx-auto px-8 py-2">
+        {gameState === GAME_STATE.LANDING && (
           <LandingPage onCreate={handleCreateGame} onJoin={handleJoinGame} />
         )}
-        {gameState === GAME_STATES.LOBBY && (
+        {gameState === GAME_STATE.LOBBY && (
           <LobbyPage
             lobbyId={lobbyId}
             gameId={gameId}
@@ -87,7 +90,9 @@ const App = () => {
             onLeave={handleLeaveGame}
           />
         )}
-        {gameState === GAME_STATES.GAME && <GamePlaceholder onLeave={handleLeaveGame} />}
+        {gameState === GAME_STATE.GAME && (
+          <GameEngine lobbyId={lobbyId} gameId={gameId} playerName={playerName} />
+        )}
       </main>
     </div>
   );

@@ -1,6 +1,19 @@
 import { get, off, onValue, ref, remove, set } from 'firebase/database';
+
 import { db } from '../firebase';
-import { LOBBY_STATUS } from '../constants';
+import { GAME_STATE, LOBBY_STATUS } from '../constants';
+
+const lobbyStatusToGameState = (status) => {
+  switch (status) {
+    case LOBBY_STATUS.WAITING:
+      return GAME_STATE.LOBBY;
+    case LOBBY_STATUS.IN_GAME:
+      return GAME_STATE.GAME;
+    case LOBBY_STATUS.FINISHED:
+    default:
+      return GAME_STATE.LANDING;
+  }
+};
 
 export const subscribeToLobbyPlayers = (lobbyId, callback) => {
   const playersRef = ref(db, `lobby/${lobbyId}/players`);
@@ -17,28 +30,34 @@ export const addPlayerToLobby = async (lobbyId, playerName, pin, isHost = false)
   const lobbyRef = ref(db, `lobby/${lobbyId}`);
   const lobbySnapshot = await get(lobbyRef);
 
-  if (!lobbySnapshot.exists()) return false;
+  if (!lobbySnapshot.exists()) return GAME_STATE.LANDING;
 
-  const lobbyStatus = lobbySnapshot.val().status;
-  if (lobbyStatus === LOBBY_STATUS.WAITING || lobbyStatus === LOBBY_STATUS.IN_GAME) {
-    const playerRef = ref(db, `lobby/${lobbyId}/players/${playerName}`);
-    const playerSnapshot = await get(playerRef);
-    if (playerSnapshot.exists()) {
-      const playerPin = playerSnapshot.val().pin;
-      return playerPin === pin;
-    }
-  } else if (lobbyStatus === LOBBY_STATUS.FINISHED) {
-    return false;
-  }
+  const lobbyData = lobbySnapshot.val();
+  const lobbyStatus = lobbyData.status;
+  const gameState = lobbyStatusToGameState(lobbyStatus);
+
+  if (lobbyStatus === LOBBY_STATUS.FINISHED) return GAME_STATE.LANDING;
 
   const playerRef = ref(db, `lobby/${lobbyId}/players/${playerName}`);
-  await set(playerRef, {
-    pin,
-    host: isHost,
-    joinedAt: Date.now(),
-  });
+  const playerSnapshot = await get(playerRef);
 
-  return true;
+  if (playerSnapshot.exists()) {
+    const existingPin = playerSnapshot.val().pin;
+    if (existingPin !== pin) return GAME_STATE.LANDING;
+    return gameState;
+  }
+
+  if (lobbyStatus === LOBBY_STATUS.WAITING || lobbyStatus === LOBBY_STATUS.IN_GAME) {
+    await set(playerRef, {
+      pin,
+      host: isHost,
+      joinedAt: Date.now(),
+    });
+
+    return gameState;
+  }
+
+  return GAME_STATE.LANDING;
 };
 
 export const removePlayerFromLobby = async (lobbyId, playerName) => {

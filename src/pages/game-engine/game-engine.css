@@ -1,0 +1,25 @@
+.dots {
+  display: inline-block;
+  width: 1.5em;
+  text-align: left;
+}
+
+.dots::after {
+  content: '......';
+  animation: dots 1.5s steps(6, end) infinite;
+}
+
+@keyframes dots {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+  33% {
+    clip-path: inset(0 66% 0 0);
+  }
+  66% {
+    clip-path: inset(0 33% 0 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
