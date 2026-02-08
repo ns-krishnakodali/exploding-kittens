@@ -4,7 +4,13 @@ import { Bomb } from 'lucide-react';
 import { Toast } from './components';
 import { GAME_STATE, LOBBY_STATUS } from './constants';
 import { GameEngine, LandingPage, LobbyPage } from './pages';
-import { addPlayerToLobby, createLobby, getLobbyId, updateLobbyStatus } from './services';
+import {
+  addPlayerToLobby,
+  createLobby,
+  getLobbyId,
+  startGameService,
+  updateLobbyStatus,
+} from './services';
 
 const App = () => {
   const [lobbyId, setLobbyId] = useState(null);
@@ -53,8 +59,15 @@ const App = () => {
   };
 
   const handleStartGame = () => {
-    updateLobbyStatus(lobbyId, LOBBY_STATUS.IN_GAME);
-    setGameState(GAME_STATE.GAME);
+    const status = startGameService(lobbyId);
+    if (status) {
+      updateLobbyStatus(lobbyId, LOBBY_STATUS.IN_GAME);
+      setGameState(GAME_STATE.GAME);
+    } else {
+      setToast({ message: 'Unable to start the game', type: 'error' });
+      updateLobbyStatus(lobbyId, LOBBY_STATUS.WAITING);
+      setGameState(GAME_STATE.LOBBY);
+    }
   };
 
   const handleLeaveGame = () => {

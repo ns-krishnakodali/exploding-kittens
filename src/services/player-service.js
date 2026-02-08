@@ -26,6 +26,15 @@ export const subscribeToLobbyPlayers = (lobbyId, callback) => {
   return () => off(playersRef);
 };
 
+export const getPlayerCards = async (lobbyId, playerName) => {
+  const playersRef = ref(db, `lobby/${lobbyId}/players/${playerName}`);
+
+  const playerSnapshot = await get(playersRef);
+  if (!playerSnapshot.exists()) return [];
+
+  return playerSnapshot.val()?.deck ?? [];
+};
+
 export const addPlayerToLobby = async (lobbyId, playerName, pin, isHost = false) => {
   const lobbyRef = ref(db, `lobby/${lobbyId}`);
   const lobbySnapshot = await get(lobbyRef);
@@ -51,6 +60,7 @@ export const addPlayerToLobby = async (lobbyId, playerName, pin, isHost = false)
     await set(playerRef, {
       pin,
       host: isHost,
+      inGame: true,
       joinedAt: Date.now(),
     });
 
