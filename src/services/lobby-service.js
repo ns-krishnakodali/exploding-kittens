@@ -1,8 +1,19 @@
-import { get, push, ref, set, update } from 'firebase/database';
+import { get, off, onValue, push, ref, set, update } from 'firebase/database';
 
 import { db } from '../firebase';
 import { generateUniqueCode } from '../utils';
 import { LOBBY_STATUS } from '../constants';
+
+export const subscribeToGameStatus = (lobbyId, callback) => {
+  const lobbyStatusRef = ref(db, `lobby/${lobbyId}/status`);
+
+  onValue(lobbyStatusRef, (snapshot) => {
+    const status = snapshot.val() || LOBBY_STATUS.WAITING;
+    callback(status);
+  });
+
+  return () => off(lobbyStatusRef);
+};
 
 export const createLobby = async () => {
   const lobbiesRef = ref(db, 'lobby');

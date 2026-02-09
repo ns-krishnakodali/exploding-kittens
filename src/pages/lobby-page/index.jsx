@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Crown, LogOut, Play, Sword, Zap } from 'lucide-react';
 
-import { subscribeToLobbyPlayers } from '../../services';
+import {
+  removePlayerFromLobby,
+  subscribeToGameStatus,
+  subscribeToLobbyPlayers,
+} from '../../services';
+import { LOBBY_STATUS } from '../../constants';
 
-export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave }) => {
+export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, startGame }) => {
   const [lobbyPlayers, setLobbyPlayers] = useState({});
 
   useEffect(() => {
@@ -14,7 +19,20 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave }) => 
     return unsubscribe;
   }, [lobbyId]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToGameStatus(lobbyId, (status) => {
+      if (status === LOBBY_STATUS.IN_GAME) startGame();
+    });
+
+    return unsubscribe;
+  }, [lobbyId, startGame]);
+
   const [copied, setCopied] = useState(false);
+
+  const handleLeaveLobby = async () => {
+    const status = await removePlayerFromLobby(lobbyId, playerName);
+    if (status) onLeave();
+  };
 
   const copyCode = async () => {
     try {
@@ -165,7 +183,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave }) => 
               )}
 
               <button
-                onClick={onLeave}
+                onClick={handleLeaveLobby}
                 className="w-full border-2 border-zinc-800 hover:bg-zinc-900 text-zinc-400 font-black italic py-4 rounded-2xl transition-all flex items-center justify-center gap-2"
               >
                 <LogOut size={18} /> LEAVE LOBBY

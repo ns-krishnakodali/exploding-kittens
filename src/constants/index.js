@@ -24,3 +24,11 @@ export const CARD_TYPES = {
   SHUFFLE: 'Shuffle',
   TARGETTED_ATTACK: 'Targeted-Attack',
 };
+
+export const LOADING_MESSAGES = [
+  'Hiding the Exploding Kittens',
+  'Preparing to Ruin Friendships',
+  'Adding More Explosions Than Necessary',
+  'Loading, Do Not Shake the Kittens',
+  'Negotiating With Unstable Cats',
+];

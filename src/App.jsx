@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Bomb } from 'lucide-react';
 
-import { Toast } from './components';
+import { Loading, Toast } from './components';
 import { GAME_STATE, LOBBY_STATUS } from './constants';
 import { GameEngine, LandingPage, LobbyPage } from './pages';
 import {
@@ -59,7 +58,7 @@ const App = () => {
   };
 
   const handleStartGame = () => {
-    const status = startGameService(lobbyId);
+    const status = startGameService(lobbyId, playerName);
     if (status) {
       updateLobbyStatus(lobbyId, LOBBY_STATUS.IN_GAME);
       setGameState(GAME_STATE.GAME);
@@ -74,18 +73,11 @@ const App = () => {
     setGameState(GAME_STATE.LANDING);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F8F4E1] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Bomb size={64} className="text-red-600 mx-auto animate-bounce" />
-          <p className="text-2xl font-black italic uppercase text-red-600">
-            Priming the Felines...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const startGame = () => {
+    setGameState(GAME_STATE.GAME);
+  };
+
+  if (loading) return <Loading />;
 
   return (
     <div className="text-black font-sans selection:bg-red-200">
@@ -101,6 +93,7 @@ const App = () => {
             playerName={playerName}
             onStart={handleStartGame}
             onLeave={handleLeaveGame}
+            startGame={startGame}
           />
         )}
         {gameState === GAME_STATE.GAME && (

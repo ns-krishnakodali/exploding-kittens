@@ -1,41 +1,7 @@
-import { get, off, onValue, ref, set } from 'firebase/database';
+import { get, off, onValue, ref, set, update } from 'firebase/database';
 
 import { CARD_TYPES } from '../constants';
 import { db } from '../firebase';
-
-const getRandomCards = (deck, count = 6) => {
-  const shuffled = [...deck].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
-};
-
-const getDefuseCard = (defuseCardsArray) => {
-  if (defuseCardsArray.length === 0) return null;
-
-  const randomIndex = Math.floor(Math.random() * defuseCardsArray.length);
-  const defuseCard = defuseCardsArray[randomIndex];
-  defuseCardsArray.splice(randomIndex, 1);
-  return defuseCard;
-};
-
-const removeCardsFromDeck = (deck, cardsToRemove) => {
-  const cardDeckCopy = [...deck];
-  cardsToRemove.forEach((card) => {
-    const index = cardDeckCopy.indexOf(card);
-    if (index > -1) {
-      cardDeckCopy.splice(index, 1);
-    }
-  });
-  return cardDeckCopy;
-};
-
-const shuffleDeck = (deck) => {
-  const shuffled = [...deck];
-  for (let idx = shuffled.length - 1; idx > 0; idx--) {
-    const sIdx = Math.floor(Math.random() * (idx + 1));
-    [shuffled[idx], shuffled[sIdx]] = [shuffled[sIdx], shuffled[idx]];
-  }
-  return shuffled;
-};
 
 export const subscribeToGameLobby = (lobbyId, callback) => {
   const lobbyRef = ref(db, `lobby/${lobbyId}`);
@@ -48,7 +14,7 @@ export const subscribeToGameLobby = (lobbyId, callback) => {
   return () => off(lobbyRef, 'value', listener);
 };
 
-export const startGameService = async (lobbyId) => {
+export const startGameService = async (lobbyId, hostName) => {
   if (!lobbyId) {
     console.error('Invalid lobby ID');
     return false;
@@ -99,40 +65,99 @@ export const startGameService = async (lobbyId) => {
 
     cardsDeck = shuffleDeck(cardsDeck);
 
-    await set(ref(db, `lobby/${lobbyId}/players`), playersInfo);
-    await set(ref(db, `lobby/${lobbyId}/cardsDeck`), cardsDeck);
-    await set(ref(db, `lobby/${lobbyId}/statusMessage`), '');
+    await update(ref(db, `lobby/${lobbyId}`), {
+      players: playersInfo,
+      cardsDeck: cardsDeck,
+      statusMessage: '',
+      attackStack: 0,
+      currentPlayer: hostName,
+    });
+
+    return true;
   } catch (error) {
     console.error('Error fetching card details:', error);
     return false;
   }
-
-  return true;
 };
 
-export const getCardDetails = async (cards) => {
-  if (!Array.isArray(cards) || cards.length === 0) return {};
-
+export const getAllCardsImages = async () => {
   try {
     const cardImagesRef = ref(db, 'cardImages');
     const snapshot = await get(cardImagesRef);
 
-    if (!snapshot.exists()) {
-      return {};
-    }
+    if (!snapshot.exists()) return {};
 
-    const allCardImages = snapshot.val();
-    const cardImages = {};
-
-    cards.forEach((cardName) => {
-      if (allCardImages[cardName]) {
-        cardImages[cardName] = allCardImages[cardName]?.url || '';
-      }
-    });
-
-    return cardImages;
+    return snapshot.val();
   } catch (error) {
     console.error('Error fetching card images:', error);
     return {};
   }
+};
+
+export const updateGamePostDraw = async (
+  lobbyId,
+  cardsDeck,
+  playerCards,
+  playerName,
+  nextPlayerName
+) => {
+  try {
+    const updates = {};
+    updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
+    updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
+    updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
+
+    await update(ref(db), updates);
+
+    return true;
+  } catch (error) {
+    console.error('Error updating cards deck:', error);
+    return false;
+  }
+};
+
+export const updateUsedCardsDeck = async (lobbyId, usedCardsDeck) => {
+  try {
+    await set(ref(db, `lobby/${lobbyId}/usedCardsDeck`), usedCardsDeck);
+    return true;
+  } catch (error) {
+    console.error('Error updating used cards deck:', error);
+    return false;
+  }
+};
+
+export const shuffleDeck = (deck) => {
+  const shuffled = [...deck];
+  for (let idx = shuffled.length - 1; idx > 0; idx--) {
+    const sIdx = Math.floor(Math.random() * (idx + 1));
+    [shuffled[idx], shuffled[sIdx]] = [shuffled[sIdx], shuffled[idx]];
+  }
+  return shuffled;
+};
+
+// Private functions
+
+const getRandomCards = (deck, count = 6) => {
+  const shuffled = [...deck].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+};
+
+const getDefuseCard = (defuseCardsArray) => {
+  if (defuseCardsArray.length === 0) return null;
+
+  const randomIndex = Math.floor(Math.random() * defuseCardsArray.length);
+  const defuseCard = defuseCardsArray[randomIndex];
+  defuseCardsArray.splice(randomIndex, 1);
+  return defuseCard;
+};
+
+const removeCardsFromDeck = (deck, cardsToRemove) => {
+  const cardDeckCopy = [...deck];
+  cardsToRemove.forEach((card) => {
+    const index = cardDeckCopy.indexOf(card);
+    if (index > -1) {
+      cardDeckCopy.splice(index, 1);
+    }
+  });
+  return cardDeckCopy;
 };
