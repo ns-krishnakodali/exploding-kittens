@@ -1,18 +1,7 @@
-import { get, off, onValue, ref, set, update } from 'firebase/database';
+import { get, ref, update } from 'firebase/database';
 
 import { CARD_TYPES } from '../constants';
 import { db } from '../firebase';
-
-export const subscribeToGameLobby = (lobbyId, callback) => {
-  const lobbyRef = ref(db, `lobby/${lobbyId}`);
-
-  const listener = (snapshot) => {
-    callback(snapshot.val() ?? {});
-  };
-
-  onValue(lobbyRef, listener);
-  return () => off(lobbyRef, 'value', listener);
-};
 
 export const startGameService = async (lobbyId, hostName) => {
   if (!lobbyId) {
@@ -94,18 +83,22 @@ export const getAllCardsImages = async () => {
   }
 };
 
-export const updateGamePostDraw = async (
+export const updatePostDrawState = async (
   lobbyId,
-  cardsDeck,
-  playerCards,
   playerName,
-  nextPlayerName
+  nextPlayerName,
+  playerCards,
+  inGameStatus,
+  cardsDeck,
+  statusMessage = ''
 ) => {
   try {
     const updates = {};
-    updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
-    updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
     updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
+    updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
+    updates[`/lobby/${lobbyId}/players/${playerName}/inGame`] = inGameStatus;
+    updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
+    if (statusMessage) updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
 
     await update(ref(db), updates);
 
@@ -116,12 +109,28 @@ export const updateGamePostDraw = async (
   }
 };
 
-export const updateUsedCardsDeck = async (lobbyId, usedCardsDeck) => {
+export const updatePostPlayState = async (
+  lobbyId,
+  playerName,
+  nextPlayerName,
+  playerCards,
+  usedCardsDetails,
+  attackStack,
+  statusMessage = ''
+) => {
   try {
-    await set(ref(db, `lobby/${lobbyId}/usedCardsDeck`), usedCardsDeck);
+    const updates = {};
+    if (nextPlayerName) updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
+    updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
+    updates[`/lobby/${lobbyId}/usedCardsDetails`] = usedCardsDetails;
+    updates[`/lobby/${lobbyId}/attackStack`] = attackStack;
+    updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
+
+    await update(ref(db), updates);
+
     return true;
   } catch (error) {
-    console.error('Error updating used cards deck:', error);
+    console.error('Error updating cards deck:', error);
     return false;
   }
 };

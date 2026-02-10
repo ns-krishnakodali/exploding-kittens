@@ -32,3 +32,8 @@ export const LOADING_MESSAGES = [
   'Loading, Do Not Shake the Kittens',
   'Negotiating With Unstable Cats',
 ];
+
+export const EXPLOSION_PREFIX = 'Explo';
+
+export const ERROR_MESSAGE = 'Something went wrong, try again';
+export const UNKOWN_ERROR = 'An unknown error occurred';

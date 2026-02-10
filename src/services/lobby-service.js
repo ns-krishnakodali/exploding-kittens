@@ -15,6 +15,17 @@ export const subscribeToGameStatus = (lobbyId, callback) => {
   return () => off(lobbyStatusRef);
 };
 
+export const subscribeToGameLobby = (lobbyId, callback) => {
+  const lobbyRef = ref(db, `lobby/${lobbyId}`);
+
+  const listener = (snapshot) => {
+    callback(snapshot.val() ?? {});
+  };
+
+  onValue(lobbyRef, listener);
+  return () => off(lobbyRef, 'value', listener);
+};
+
 export const createLobby = async () => {
   const lobbiesRef = ref(db, 'lobby');
   const newLobbyRef = push(lobbiesRef);

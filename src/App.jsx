@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Loading, Toast } from './components';
-import { GAME_STATE, LOBBY_STATUS } from './constants';
+import { ERROR_MESSAGE, GAME_STATE, LOBBY_STATUS, UNKOWN_ERROR } from './constants';
 import { GameEngine, LandingPage, LobbyPage } from './pages';
 import {
   addPlayerToLobby,
@@ -40,7 +40,7 @@ const App = () => {
       const gameStateInfo = await addPlayerToLobby(existingLobbyId, newPlayerName, pin);
 
       if (gameStateInfo === GAME_STATE.LANDING) {
-        setToast({ message: 'Something went wrong, try again', type: 'error' });
+        setToast({ message: ERROR_MESSAGE, type: 'error' });
         setGameState(gameStateInfo);
         return;
       }
@@ -51,7 +51,7 @@ const App = () => {
       setGameState(gameStateInfo);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'An unknown error occurred', type: 'error' });
+      setToast({ message: UNKOWN_ERROR, type: 'error' });
     } finally {
       setLoading(false);
     }

@@ -17,23 +17,24 @@ import {
   getPlayerCards,
   getPlayerDetails,
   subscribeToGameLobby,
-  updateGamePostDraw,
+  updatePostDrawState,
 } from '../../services';
-import { CARD_TYPES } from '../../constants';
-import { Loading } from '../../components';
+import { CARD_TYPES, ERROR_MESSAGE, EXPLOSION_PREFIX } from '../../constants';
+import { Loading, Toast } from '../../components';
 
 export const GameEngine = ({ lobbyId, gameId, playerName }) => {
   const [allCardImages, setAllCardImages] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUserTurn, setIsUserTurn] = useState(true);
-  const [statusMessage, setStatusMessage] = useState(null);
+  const [currentPlayerName, setCurrentPlayerName] = useState(null);
   const [attackStack, setAttackStack] = useState(0);
+  const [usedCardsDetails, setUsedCardsDetails] = useState([]);
   const [cardsDeck, setCardsDeck] = useState([]);
-  const [usedCardsDeck, setUsedCardsDeck] = useState([]);
   const [playerCards, setPlayerCards] = useState([]);
   const [playerDetails, setPlayersDetails] = useState([]);
-  const [deckSize, setDeckSize] = useState(null);
+  const [statusMessage, setStatusMessage] = useState(null);
   const [showExplodeModal, setShowExplodeModal] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const fetchAllCardImages = async () => {
@@ -50,17 +51,24 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
 
     const unsubscribe = subscribeToGameLobby(lobbyId, (lobbyDetails) => {
       setIsUserTurn((lobbyDetails?.currentPlayer || '') === playerName);
-      if (lobbyDetails?.statusMessage) setStatusMessage(lobbyDetails.statusMessage);
+      setCurrentPlayerName(lobbyDetails?.currentPlayer);
       setAttackStack(lobbyDetails?.attackStack || 0);
-      setDeckSize(lobbyDetails?.cardsDeck?.length || null);
       setCardsDeck(lobbyDetails?.cardsDeck);
-      setUsedCardsDeck(lobbyDetails?.usedCardsDeck?.slice(0, 3) || []);
+      setUsedCardsDetails(lobbyDetails?.usedCardsDetails?.slice(0, 3) || []);
 
       const playerCardsInfo = getPlayerCards(lobbyDetails, playerName, allCardImages);
       setPlayerCards(playerCardsInfo);
 
       const playerDetailsInfo = getPlayerDetails(lobbyDetails);
       setPlayersDetails(playerDetailsInfo);
+
+      if (lobbyDetails?.statusMessage) {
+        const lobbyStatusMessage = lobbyDetails.statusMessage;
+        setStatusMessage({
+          type: lobbyStatusMessage.includes(EXPLOSION_PREFIX) ? 'error' : 'info',
+          message: lobbyStatusMessage,
+        });
+      }
     });
 
     return unsubscribe;
@@ -76,16 +84,14 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
     return () => clearTimeout(timer);
   }, [statusMessage]);
 
-  const handleDrawCard = () => {
-    if (!isUserTurn) return;
+  const getNextPlayerIdx = (updatedPlayerDetails = []) => {
+    const playerDetailsInfo = updatedPlayerDetails?.length
+      ? updatedPlayerDetails
+      : playerDetails || [];
 
-    const topCardName = cardsDeck[0];
-    if (topCardName?.startsWith(CARD_TYPES.EXPLODING_KITTEN)) {
-      setShowExplodeModal(true);
-      return;
-    }
-    const currPlayerIdx = playerDetails.findIndex((player) => player?.name === playerName);
+    const currPlayerIdx = playerDetailsInfo.findIndex((player) => player?.name === playerName);
     let nextPlayerIdx = currPlayerIdx + 1;
+
     for (let idx = 1; idx < playerDetails.length; idx++) {
       const playerIdx = (currPlayerIdx + idx) % playerDetails.length;
 
@@ -95,22 +101,116 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
       }
     }
 
-    updateGamePostDraw(
-      lobbyId,
-      cardsDeck.slice(1),
-      [...(playerCards?.map((card) => card?.name) || []), topCardName],
-      playerName,
-      playerDetails[nextPlayerIdx]?.name
-    );
-
-    const cardType =
-      Object.values(CARD_TYPES).find((cardType) => topCardName?.startsWith(cardType)) || 'CAT';
-    setStatusMessage({ type: 'info', message: `You picked ${cardType} card` });
+    return nextPlayerIdx;
   };
 
-  const handleDefusePlayer = async () => {};
+  const handlePlayCard = (cardName) => {
+    switch (Object.values(CARD_TYPES).find((cardType) => cardName?.startsWith(cardType))) {
+      case CARD_TYPES.ALTER_THE_FUTURE: {
+        break;
+      }
+      case CARD_TYPES.ATTACK: {
+        break;
+      }
+      case CARD_TYPES.CAT_CARD: {
+        break;
+      }
+      case CARD_TYPES.DRAW_FROM_THE_BOTTOM: {
+        break;
+      }
+      case CARD_TYPES.FAVOR: {
+        break;
+      }
+      case CARD_TYPES.NOPE: {
+        break;
+      }
+      case CARD_TYPES.SKIP: {
+        break;
+      }
+      case CARD_TYPES.SEE_THE_FUTURE: {
+        break;
+      }
+      case CARD_TYPES.SHUFFLE: {
+        break;
+      }
+      case CARD_TYPES.TARGETTED_ATTACK: {
+        break;
+      }
+      default:
+        console.error(`Invalid card type: ${cardName}`);
+        setToast('Aborting current action, try again');
+        break;
+    }
+  };
 
-  const handleExplodePlayer = async () => {};
+  const handleDrawCard = () => {
+    if (!isUserTurn) return;
+
+    const topCardName = cardsDeck[0];
+    if (topCardName?.startsWith(CARD_TYPES.EXPLODING_KITTEN)) {
+      setShowExplodeModal(true);
+      return;
+    }
+
+    const nextPlayerIdx = getNextPlayerIdx();
+    const status = updatePostDrawState(
+      lobbyId,
+      playerName,
+      playerDetails[nextPlayerIdx]?.name,
+      [...(playerCards?.map((card) => card?.name) || []), topCardName],
+      true,
+      cardsDeck.slice(1)
+    );
+
+    if (status) {
+      const cardType =
+        Object.values(CARD_TYPES).find((cardType) => topCardName?.startsWith(cardType)) || 'CAT';
+      setStatusMessage({ type: 'info', message: `You picked ${cardType} card` });
+    } else {
+      setToast({ message: ERROR_MESSAGE, type: 'error' });
+    }
+  };
+
+  const handleDefusePlayer = async () => {
+    const defuseIndex = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.DEFUSE));
+    if (defuseIndex !== -1) {
+      const updatedCards = playerCards.filter((_, idx) => idx !== defuseIndex);
+      const nextPlayerIdx = getNextPlayerIdx();
+      const status = await updatePostDrawState(
+        lobbyId,
+        playerName,
+        playerDetails[nextPlayerIdx]?.name,
+        [...(updatedCards?.map((card) => card?.name) || [])],
+        true,
+        cardsDeck.slice(1),
+        `${playerName} Defused the Explosion`
+      );
+
+      if (!status) setToast({ message: ERROR_MESSAGE, type: 'error' });
+    }
+    setShowExplodeModal(false);
+  };
+
+  const handleExplodePlayer = async () => {
+    const updatedPlayerDetails = playerDetails?.map((player) =>
+      player.name === playerName ? { ...player, inGame: false } : player
+    );
+    setPlayersDetails(updatedPlayerDetails);
+
+    const nextPlayerIdx = getNextPlayerIdx(updatedPlayerDetails);
+    const status = await updatePostDrawState(
+      lobbyId,
+      playerName,
+      updatedPlayerDetails[nextPlayerIdx]?.name,
+      [...(playerCards?.map((card) => card?.name) || [])],
+      false,
+      cardsDeck.slice(1),
+      `BOOM! ${playerName} just exploded, LOL!`
+    );
+
+    if (!status) setToast({ message: ERROR_MESSAGE, type: 'error' });
+    setShowExplodeModal(false);
+  };
 
   return (
     <>
@@ -130,11 +230,11 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
             </div>
           </div>
         </div>
-        {deckSize && (
+        {cardsDeck?.length && (
           <div className="flex items-center gap-4">
             <div className="bg-yellow-400 border-4 border-black px-4 py-1.5 rounded-xl shadow-[4px_4px_0_0_#000] hidden sm:block">
               <span className="font-black italic uppercase text-xs tracking-tighter text-black">
-                Deck Size: {deckSize}
+                Deck Size: {cardsDeck.length}
               </span>
             </div>
           </div>
@@ -144,6 +244,9 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
         <Loading />
       ) : (
         <>
+          {toast && (
+            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+          )}
           <div className="flex flex-col grow overflow-x-hidden">
             <section className="p-6 md:p-8 flex flex-col items-center justify-center gap-10">
               <div className="flex flex-col md:flex-row gap-10 md:gap-20 items-center relative">
@@ -188,8 +291,8 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                     <div className="absolute inset-0 border-4 border-black border-dashed rounded-4xl opacity-20 flex items-center justify-center">
                       <ArrowDownCircle size={32} className="text-black/30" />
                     </div>
-                    {usedCardsDeck?.length > 0 ? (
-                      usedCardsDeck.map((card, idx) => (
+                    {usedCardsDetails?.length > 0 ? (
+                      usedCardsDetails.map((card, idx) => (
                         <div
                           key={idx}
                           style={{
@@ -262,7 +365,7 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                     className={`p-3 border-4 border-black rounded-2xl transition-all flex items-center gap-3 ${
                       !player.inGame
                         ? 'bg-zinc-800 border-zinc-700 grayscale opacity-40 text-zinc-600 shadow-none'
-                        : isUserTurn && player.name === playerName
+                        : player.name === currentPlayerName
                           ? 'bg-yellow-300 shadow-[4px_4px_0_0_#ef4444] scale-105 z-10 text-black'
                           : 'bg-white shadow-[4px_4px_0_0_#000] hover:bg-zinc-200 cursor-pointer'
                     }`}
@@ -307,7 +410,7 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                 </div>
                 {isUserTurn && attackStack > 0 && (
                   <div className="bg-red-600 text-white px-4 py-2 rounded-xl border-4 border-black font-black italic shadow-[4px_4px_0_0_#000] animate-pulse flex items-center gap-2 text-sm">
-                    <AlertTriangle size={16} /> STACKED_TURNS: {attackStack + 1}
+                    <AlertTriangle size={16} /> STACKED_TURNS: {attackStack}
                   </div>
                 )}
               </div>
@@ -315,10 +418,16 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                 {playerCards.map(({ name: cardName, url }, idx) => (
                   <button
                     key={idx}
-                    onClick={() => {}}
-                    disabled={!isUserTurn || cardName.includes(CARD_TYPES.DEFUSE)}
+                    onClick={() => handlePlayCard(cardName)}
+                    disabled={
+                      (!isUserTurn && !cardName.startsWith(CARD_TYPES.NOPE)) ||
+                      cardName.includes(CARD_TYPES.DEFUSE)
+                    }
                     className={`w-64 h-80 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
-                  ${isUserTurn && 'hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] shadow-[4px_4px_0_0_#000] active:scale-95'}`}
+                  ${
+                    (isUserTurn || cardName.startsWith(CARD_TYPES.NOPE)) &&
+                    'hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] shadow-[4px_4px_0_0_#000] active:scale-95'
+                  }`}
                   >
                     <img
                       src={url}
@@ -326,6 +435,7 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                       className="w-60 h-72"
                       loading="eager"
                       fetchPriority="high"
+                      referrerPolicy="no-referrer"
                     />
                   </button>
                 ))}
@@ -339,13 +449,15 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
             animate-in zoom-in"
               >
                 <h1 className="text-5xl font-black italic uppercase text-red-600 tracking-tighter drop-shadow-[4px_4px_0_#000]">
-                  BOOM!
+                  Boom!
                 </h1>
                 {cardsDeck?.[0] && (
                   <img
                     src={allCardImages?.[cardsDeck[0]]?.url}
                     alt="Exploding Card"
-                    className="w-52 h-64"
+                    className="w-60 h-72"
+                    loading="eager"
+                    fetchPriority="high"
                   />
                 )}
                 <div className="space-y-4 pt-2">
@@ -354,16 +466,18 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                   ) ? (
                     <button
                       onClick={handleDefusePlayer}
-                      className="w-fit bg-green-500 text-white font-black italic text-3xl px-8 py-6 rounded-[2.5rem] border-8 border-black shadow-[10px_10px_0_0_#000] hover:bg-green-600 transition-all"
+                      className="w-fit bg-green-500 text-white uppercase font-black italic text-3xl px-8 py-6 rounded-[2.5rem] border-8 border-black
+                      shadow-[10px_10px_0_0_#000] hover:bg-green-600 transition-all"
                     >
-                      DEFUSE
+                      Defuse
                     </button>
                   ) : (
                     <button
                       onClick={handleExplodePlayer}
-                      className="w-fit bg-red-600 text-white font-black italic text-3xl px-8 py-6 rounded-[2.5rem] border-8 border-black shadow-[10px_10px_0_0_#000]"
+                      className="w-fit bg-red-600 text-white uppercase font-black italic text-3xl px-8 py-6 rounded-[2.5rem] border-8 border-black
+                      shadow-[10px_10px_0_0_#000]"
                     >
-                      TERMINATE
+                      Exploded
                     </button>
                   )}
                 </div>

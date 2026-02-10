@@ -118,7 +118,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {orderedPlayers.map(({ name, host }) => (
                 <div
                   key={name}
@@ -127,17 +127,15 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
                 >
                   <div className="flex flex-col items-center text-center gap-1">
                     <div
-                      className={`w-16 h-16 rounded-2xl border-4 border-black flex items-center justify-center text-2xl font-black shadow-[4px_4px_0_0_#000]
+                      className={`w-14 h-14 rounded-2xl border-4 border-black flex items-center justify-center text-2xl font-black shadow-[4px_4px_0_0_#000]
                       ${host ? 'bg-yellow-400' : 'bg-white'}`}
                     >
                       {name?.[0].toUpperCase()}
                     </div>
-
-                    <span className="font-black italic uppercase text-sm truncate w-full mt-1">
-                      {name}
+                    <span className="flex items-center justify-center gap-1 font-black italic uppercase text-sm w-full mt-1 min-w-0">
+                      <span className="truncate">{name}</span>
+                      {host && <Crown size={14} className="text-red-600 fill-red-600 shrink-0" />}
                     </span>
-
-                    {host && <Crown size={14} className="text-red-600 fill-red-600" />}
                   </div>
                 </div>
               ))}
@@ -169,7 +167,8 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
                 <button
                   onClick={onStart}
                   disabled={Object.keys(lobbyPlayers).length < 2}
-                  className="w-full bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-white font-black italic py-5 rounded-2xl border-2 border-white/20 flex items-center justify-center gap-3 transition-all"
+                  className="w-full bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed
+                  text-white font-black italic py-5 rounded-2xl border-2 border-white/20 flex items-center justify-center gap-3 transition-all"
                 >
                   <Play size={24} fill="currentColor" /> START MATCH
                 </button>
@@ -184,7 +183,8 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
 
               <button
                 onClick={handleLeaveLobby}
-                className="w-full border-2 border-zinc-800 hover:bg-zinc-900 text-zinc-400 font-black italic py-4 rounded-2xl transition-all flex items-center justify-center gap-2"
+                className="w-full border-2 border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-black italic py-4 rounded-2xl transition-all
+                flex items-center justify-center gap-2"
               >
                 <LogOut size={18} /> LEAVE LOBBY
               </button>
