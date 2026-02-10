@@ -8,3 +8,13 @@ export const generateUniqueCode = (length = 6) => {
 
   return code;
 };
+
+export const getRandomInt = (min = 0, max) => {
+  if (max === undefined) {
+    max = min;
+    min = 0;
+  }
+
+  if (max <= min) return min;
+  return Math.floor(Math.random() * (max - min)) + min;
+};

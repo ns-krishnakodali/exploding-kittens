@@ -1,4 +1,4 @@
-import { get, ref, update } from 'firebase/database';
+import { get, ref, runTransaction, update } from 'firebase/database';
 
 import { CARD_TYPES } from '../constants';
 import { db } from '../firebase';
@@ -94,17 +94,23 @@ export const updatePostDrawState = async (
 ) => {
   try {
     const updates = {};
-    updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
+
+    if (nextPlayerName !== undefined && nextPlayerName !== null)
+      updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
     updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
     updates[`/lobby/${lobbyId}/players/${playerName}/inGame`] = inGameStatus;
     updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
     if (statusMessage) updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
 
-    await update(ref(db), updates);
+    await runTransaction(ref(db, `/lobby/${lobbyId}/attackStack`), (currentAttackStack) => {
+      if (!currentAttackStack || currentAttackStack <= 0) return currentAttackStack;
+      return currentAttackStack - 1;
+    });
 
+    await update(ref(db), updates);
     return true;
   } catch (error) {
-    console.error('Error updating cards deck:', error);
+    console.error('Error updating post draw state:', error);
     return false;
   }
 };
@@ -115,19 +121,38 @@ export const updatePostPlayState = async (
   nextPlayerName,
   playerCards,
   usedCardsDetails,
-  attackStack,
-  statusMessage = ''
+  statusMessage,
+  attackStack = null,
+  deckSnapshot = null
 ) => {
   try {
     const updates = {};
-    if (nextPlayerName) updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
+
+    if (nextPlayerName !== undefined && nextPlayerName !== null)
+      updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
     updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
     updates[`/lobby/${lobbyId}/usedCardsDetails`] = usedCardsDetails;
-    updates[`/lobby/${lobbyId}/attackStack`] = attackStack;
     updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
+    if (attackStack !== null) updates[`/lobby/${lobbyId}/attackStack`] = attackStack;
+    if (deckSnapshot !== null) {
+      const { original: cardsDeck, backup: backupCardsDeck } = deckSnapshot;
+      updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
+      updates[`/lobby/${lobbyId}/backupCardsDeck`] = backupCardsDeck;
+    }
 
     await update(ref(db), updates);
+    return true;
+  } catch (error) {
+    console.error('Error updating post play state:', error);
+    return false;
+  }
+};
 
+export const updateCardsDeck = async (lobbyId, cardsDeck) => {
+  try {
+    await update(ref(db, `lobby/${lobbyId}`), {
+      cardsDeck: cardsDeck,
+    });
     return true;
   } catch (error) {
     console.error('Error updating cards deck:', error);

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Loading, Toast } from './components';
 import { ERROR_MESSAGE, GAME_STATE, LOBBY_STATUS, UNKOWN_ERROR } from './constants';
-import { GameEngine, LandingPage, LobbyPage } from './pages';
+import { GameArenaPage, LandingPage, LobbyPage } from './pages';
 import {
   addPlayerToLobby,
   createLobby,
@@ -97,7 +97,7 @@ const App = () => {
           />
         )}
         {gameState === GAME_STATE.GAME && (
-          <GameEngine lobbyId={lobbyId} gameId={gameId} playerName={playerName} />
+          <GameArenaPage lobbyId={lobbyId} gameId={gameId} playerName={playerName} />
         )}
       </main>
     </div>

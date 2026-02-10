@@ -1,7 +1,6 @@
-import './game-engine.css';
+import './game-arena-page.css';
 
 import { useState, useEffect } from 'react';
-
 import {
   Bomb,
   Zap,
@@ -11,18 +10,24 @@ import {
   ArrowDownCircle,
   PawPrint,
   Inbox,
+  ArrowRightLeft,
 } from 'lucide-react';
+
+import { CARD_TYPES, ERROR_MESSAGE, EXPLOSION_PREFIX } from '../../constants';
+import { Loading, Toast } from '../../components';
 import {
   getAllCardsImages,
   getPlayerCards,
   getPlayerDetails,
+  shuffleDeck,
   subscribeToGameLobby,
+  updateCardsDeck,
   updatePostDrawState,
+  updatePostPlayState,
 } from '../../services';
-import { CARD_TYPES, ERROR_MESSAGE, EXPLOSION_PREFIX } from '../../constants';
-import { Loading, Toast } from '../../components';
+import { getRandomInt } from '../../utils';
 
-export const GameEngine = ({ lobbyId, gameId, playerName }) => {
+export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
   const [allCardImages, setAllCardImages] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUserTurn, setIsUserTurn] = useState(true);
@@ -34,6 +39,7 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
   const [playerDetails, setPlayersDetails] = useState([]);
   const [statusMessage, setStatusMessage] = useState(null);
   const [showExplodeModal, setShowExplodeModal] = useState(false);
+  const [futureCard, setFutureCard] = useState(CARD_TYPES.ALTER_THE_FUTURE);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -85,9 +91,8 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
   }, [statusMessage]);
 
   const getNextPlayerIdx = (updatedPlayerDetails = []) => {
-    const playerDetailsInfo = updatedPlayerDetails?.length
-      ? updatedPlayerDetails
-      : playerDetails || [];
+    const playerDetailsInfo =
+      (updatedPlayerDetails?.length ? updatedPlayerDetails : playerDetails) || [];
 
     const currPlayerIdx = playerDetailsInfo.findIndex((player) => player?.name === playerName);
     let nextPlayerIdx = currPlayerIdx + 1;
@@ -104,18 +109,130 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
     return nextPlayerIdx;
   };
 
-  const handlePlayCard = (cardName) => {
+  // Handles drawing a card, optionally from the bottom of the deck.
+  const handleDrawCard = async (updatedPlayerCards = [], drawFromBottom = false) => {
+    if (!isUserTurn || !cardsDeck?.length) return;
+
+    const cardIndex = drawFromBottom ? cardsDeck.length - 1 : 0;
+    const drawnCardName = cardsDeck[cardIndex];
+    if (drawnCardName?.startsWith(CARD_TYPES.EXPLODING_KITTEN)) {
+      setShowExplodeModal(true);
+      return;
+    }
+
+    const playerCardsInfo = (updatedPlayerCards?.length ? updatedPlayerCards : playerCards) || [];
+    const updatedDeck = drawFromBottom ? cardsDeck.slice(0, -1) : cardsDeck.slice(1);
+
+    const nextPlayerIdx = getNextPlayerIdx();
+    const status = await updatePostDrawState(
+      lobbyId,
+      playerName,
+      playerDetails[nextPlayerIdx]?.name,
+      [...(playerCardsInfo?.map((card) => card?.name) || []), drawnCardName],
+      true,
+      updatedDeck
+    );
+
+    if (status) {
+      const cardType = Object.values(CARD_TYPES).find((cardType) =>
+        drawnCardName?.startsWith(cardType)
+      );
+      setStatusMessage({
+        type: 'info',
+        message: `You picked ${cardType?.replace('-', ' ') || 'CAT'} card`,
+      });
+    } else {
+      setToast({ message: ERROR_MESSAGE, type: 'error' });
+    }
+  };
+
+  // Handles playing a card and triggers the corresponding card's game logic.
+  const handlePlayCard = async (cardName, cardIdx) => {
+    const updatedPlayerCards =
+      cardIdx >= 0 && cardIdx < playerCards.length
+        ? [...playerCards.slice(0, cardIdx), ...playerCards.slice(cardIdx + 1)]
+        : [];
+
     switch (Object.values(CARD_TYPES).find((cardType) => cardName?.startsWith(cardType))) {
       case CARD_TYPES.ALTER_THE_FUTURE: {
+        const status = await updatePostPlayState(
+          lobbyId,
+          playerName,
+          null,
+          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+          [{ playerName, cardName }, ...usedCardsDetails],
+          `${playerName} Altered the Future!`
+        );
+
+        if (status) {
+          setFutureCard(CARD_TYPES.ALTER_THE_FUTURE);
+        } else {
+          console.error(`An issue occurred when ${cardName}`);
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+        }
         break;
       }
       case CARD_TYPES.ATTACK: {
+        const nextPlayerIdx = getNextPlayerIdx();
+        const status = await updatePostPlayState(
+          lobbyId,
+          playerName,
+          playerDetails[nextPlayerIdx]?.name,
+          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+          [{ playerName, cardName }, ...usedCardsDetails],
+          `${playerName} slapped down an Attack, Good luck!`,
+          attackStack + 2
+        );
+
+        if (!status) {
+          console.error(`An issue occurred when ${cardName}`);
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+        }
         break;
       }
       case CARD_TYPES.CAT_CARD: {
         break;
       }
+      case CARD_TYPES.DEFUSE: {
+        const newCardsDeck = [...cardsDeck];
+        const explosionCard = newCardsDeck.shift();
+        const randomIdx = getRandomInt(newCardsDeck.length + 1);
+        newCardsDeck.splice(randomIdx, 0, explosionCard);
+
+        const nextPlayerIdx = getNextPlayerIdx();
+        const status = await updatePostPlayState(
+          lobbyId,
+          playerName,
+          playerDetails[nextPlayerIdx]?.name,
+          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+          [{ playerName, cardName }, ...usedCardsDetails],
+          `${playerName} Defused the Explosion`,
+          null,
+          { original: newCardsDeck, backup: cardsDeck }
+        );
+
+        if (!status) {
+          console.error(`An issue occurred when ${cardName}`);
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+        }
+        break;
+      }
       case CARD_TYPES.DRAW_FROM_THE_BOTTOM: {
+        const status = await updatePostPlayState(
+          lobbyId,
+          playerName,
+          null,
+          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+          [{ playerName, cardName }, ...usedCardsDetails],
+          `${playerName} played Draw From The Bottom!`
+        );
+
+        if (!status) {
+          console.error(`An issue occurred when ${cardName}`);
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+        }
+
+        await handleDrawCard(updatedPlayerCards, true);
         break;
       }
       case CARD_TYPES.FAVOR: {
@@ -125,12 +242,58 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
         break;
       }
       case CARD_TYPES.SKIP: {
+        const nextPlayerIdx = getNextPlayerIdx();
+        const status = await updatePostPlayState(
+          lobbyId,
+          playerName,
+          playerDetails[nextPlayerIdx]?.name,
+          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+          [{ playerName, cardName }, ...usedCardsDetails],
+          `${playerName} played Skip and dodged their turn.`
+        );
+
+        if (!status) {
+          console.error(`An issue occurred when ${cardName}`);
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+        }
         break;
       }
       case CARD_TYPES.SEE_THE_FUTURE: {
+        const status = await updatePostPlayState(
+          lobbyId,
+          playerName,
+          null,
+          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+          [{ playerName, cardName }, ...usedCardsDetails],
+          `${playerName} Saw the Future!`
+        );
+
+        if (status) {
+          setFutureCard(CARD_TYPES.ALTER_THE_FUTURE);
+        } else {
+          console.error(`An issue occurred when ${cardName}`);
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+        }
         break;
       }
       case CARD_TYPES.SHUFFLE: {
+        const shuffledCardsDeck = shuffleDeck(cardsDeck);
+
+        const nextPlayerIdx = getNextPlayerIdx();
+        const status = await updatePostPlayState(
+          lobbyId,
+          playerName,
+          playerDetails[nextPlayerIdx]?.name,
+          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+          [{ playerName, cardName }, ...usedCardsDetails],
+          `${playerName} played Skip and dodged their turn.`,
+          { original: shuffledCardsDeck, backup: cardsDeck }
+        );
+
+        if (!status) {
+          console.error('An issue occurred when shuffling cards');
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+        }
         break;
       }
       case CARD_TYPES.TARGETTED_ATTACK: {
@@ -138,59 +301,58 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
       }
       default:
         console.error(`Invalid card type: ${cardName}`);
-        setToast('Aborting current action, try again');
+        setToast({ message: ERROR_MESSAGE, type: 'error' });
         break;
     }
   };
 
-  const handleDrawCard = () => {
-    if (!isUserTurn) return;
+  // Handles the Alter the Future action by validating and reordering the top cards.
+  const handleAlterFuture = async (event) => {
+    event?.preventDefault();
+    const formData = new FormData(event.target);
+    const orderValues = [
+      formData.get('order1'),
+      formData.get('order2'),
+      formData.get('order3'),
+    ].map(Number);
 
-    const topCardName = cardsDeck[0];
-    if (topCardName?.startsWith(CARD_TYPES.EXPLODING_KITTEN)) {
-      setShowExplodeModal(true);
+    const isValid =
+      new Set(orderValues).size === 3 && orderValues.every((v) => [1, 2, 3].includes(v));
+
+    if (!isValid) {
+      setToast({ message: 'Invalid ordering of cards', type: 'info' });
       return;
     }
 
-    const nextPlayerIdx = getNextPlayerIdx();
-    const status = updatePostDrawState(
-      lobbyId,
-      playerName,
-      playerDetails[nextPlayerIdx]?.name,
-      [...(playerCards?.map((card) => card?.name) || []), topCardName],
-      true,
-      cardsDeck.slice(1)
-    );
+    const updatedCardsDeck = [
+      ...orderValues.map((idx) => cardsDeck[idx - 1]),
+      ...cardsDeck.slice(3),
+    ];
 
-    if (status) {
-      const cardType =
-        Object.values(CARD_TYPES).find((cardType) => topCardName?.startsWith(cardType)) || 'CAT';
-      setStatusMessage({ type: 'info', message: `You picked ${cardType} card` });
-    } else {
+    const status = await updateCardsDeck(lobbyId, updatedCardsDeck);
+    if (!status) {
+      console.error('An issue occurred when altering cards');
       setToast({ message: ERROR_MESSAGE, type: 'error' });
+      return;
     }
+    setFutureCard(null);
   };
 
+  // Handles the defuse action when a player draws an Exploding Kitten.
   const handleDefusePlayer = async () => {
     const defuseIndex = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.DEFUSE));
-    if (defuseIndex !== -1) {
-      const updatedCards = playerCards.filter((_, idx) => idx !== defuseIndex);
-      const nextPlayerIdx = getNextPlayerIdx();
-      const status = await updatePostDrawState(
-        lobbyId,
-        playerName,
-        playerDetails[nextPlayerIdx]?.name,
-        [...(updatedCards?.map((card) => card?.name) || [])],
-        true,
-        cardsDeck.slice(1),
-        `${playerName} Defused the Explosion`
-      );
 
-      if (!status) setToast({ message: ERROR_MESSAGE, type: 'error' });
+    if (defuseIndex !== -1) {
+      handlePlayCard(playerCards[defuseIndex]?.name, defuseIndex);
+    } else {
+      console.log('Cannot find defuse card');
+      setToast({ message: ERROR_MESSAGE, type: 'error' });
     }
+
     setShowExplodeModal(false);
   };
 
+  // Handles player elimination from an explosion and processes winning logic.
   const handleExplodePlayer = async () => {
     const updatedPlayerDetails = playerDetails?.map((player) =>
       player.name === playerName ? { ...player, inGame: false } : player
@@ -210,6 +372,14 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
 
     if (!status) setToast({ message: ERROR_MESSAGE, type: 'error' });
     setShowExplodeModal(false);
+  };
+
+  const onInputChange = (event) => {
+    const inputs = Array.from(event.target.form.querySelectorAll('.order-input'));
+    const index = inputs.indexOf(event.target);
+
+    if (event.target.value.length === 1) inputs[index + 1]?.focus();
+    if (event.target.value.length === 0) inputs[index - 1]?.focus();
   };
 
   return (
@@ -292,7 +462,7 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                       <ArrowDownCircle size={32} className="text-black/30" />
                     </div>
                     {usedCardsDetails?.length > 0 ? (
-                      usedCardsDetails.map((card, idx) => (
+                      usedCardsDetails.map((cardDetails, idx) => (
                         <div
                           key={idx}
                           style={{
@@ -300,14 +470,14 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                             zIndex: 10 - idx,
                           }}
                           className={`absolute inset-0 border-4 border-black rounded-4xl p-5 flex flex-col justify-between shadow-[4px_4px_0_0_rgba(0,0,0,1)]
-                        ${card.color} ${card.theme} animate-in slide-in-from-top-4`}
+                         animate-in slide-in-from-top-4`}
                         >
                           <p className="font-black italic uppercase text-[8px] leading-none">
-                            {card.label}
+                            {cardDetails?.cardName}
                           </p>
-                          <card.icon size={40} className="mx-auto" />
+                          <PawPrint size={40} className="mx-auto" />
                           <p className="font-bold text-[7px] leading-tight uppercase opacity-80">
-                            {card.description}
+                            {cardDetails?.cardName}
                           </p>
                         </div>
                       ))
@@ -409,7 +579,10 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                   </div>
                 </div>
                 {isUserTurn && attackStack > 0 && (
-                  <div className="bg-red-600 text-white px-4 py-2 rounded-xl border-4 border-black font-black italic shadow-[4px_4px_0_0_#000] animate-pulse flex items-center gap-2 text-sm">
+                  <div
+                    className="bg-red-600 text-white px-4 py-2 rounded-xl border-4 border-black font-black italic shadow-[4px_4px_0_0_#000] 
+                    animate-pulse flex items-center gap-2 text-sm"
+                  >
                     <AlertTriangle size={16} /> STACKED_TURNS: {attackStack}
                   </div>
                 )}
@@ -418,12 +591,12 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                 {playerCards.map(({ name: cardName, url }, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handlePlayCard(cardName)}
+                    onClick={() => handlePlayCard(cardName, idx)}
                     disabled={
                       (!isUserTurn && !cardName.startsWith(CARD_TYPES.NOPE)) ||
                       cardName.includes(CARD_TYPES.DEFUSE)
                     }
-                    className={`w-64 h-80 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
+                    className={`w-60 h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
                   ${
                     (isUserTurn || cardName.startsWith(CARD_TYPES.NOPE)) &&
                     'hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] shadow-[4px_4px_0_0_#000] active:scale-95'
@@ -432,16 +605,119 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                     <img
                       src={url}
                       alt={cardName}
-                      className="w-60 h-72"
+                      className="w-54 h-64"
                       loading="eager"
                       fetchPriority="high"
                       referrerPolicy="no-referrer"
+                      style={{ visibility: 'hidden' }}
+                      onLoad={(event) => (event.currentTarget.style.visibility = 'visible')}
                     />
                   </button>
                 ))}
               </div>
             </section>
           </div>
+          {futureCard && (
+            <div className="fixed inset-0 z-500 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+              <form onSubmit={handleAlterFuture}>
+                <div
+                  className="max-w-4xl w-full bg-white border-10 border-black p-8 md:px-12 md:py-8 rounded-[4rem] text-center space-y-6 shadow-[10px_10px_0_0_#fb7185]
+                  animate-in zoom-in overflow-y-auto max-h-[90vh]"
+                >
+                  <div className="space-y-2 mb-6">
+                    <div
+                      className={`px-6 py-2 rounded-full border-4 border-black inline-block font-black italic uppercase text-lg transform -rotate-1
+                      shadow-[4px_4px_0_0_#000] ${futureCard === CARD_TYPES.ALTER_THE_FUTURE ? 'bg-indigo-600 text-white' : 'bg-pink-400 text-black'}`}
+                    >
+                      {futureCard === 1 ? 'TACTICAL_OVERRIDE' : 'TEMPORAL_VISION'}
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-black italic uppercase text-black tracking-tighter leading-none mb-2">
+                      {futureCard === CARD_TYPES.ALTER_THE_FUTURE
+                        ? 'ALTER THE FUTURE'
+                        : 'SEE THE FUTURE'}
+                    </h2>
+                    <p className="font-black text-zinc-400 uppercase tracking-widest text-xs max-w-xl mx-auto">
+                      {futureCard === CARD_TYPES.ALTER_THE_FUTURE
+                        ? 'Define the deck order. 1 is top of stack.'
+                        : 'Gaze into the top 3 cards of the deck.'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-6">
+                    {cardsDeck?.slice(0, 3)?.map((cardName, idx) => (
+                      <div key={idx} className="flex flex-col items-center gap-4">
+                        <div className={`flex items-center justify-centertext-center`}>
+                          <img
+                            src={allCardImages[cardName]?.url}
+                            alt={cardName}
+                            className="w-48 h-54 shadow-[4px_4px_0_0_#000] rotate-0"
+                            loading="eager"
+                            fetchPriority="high"
+                            referrerPolicy="no-referrer"
+                            style={{ visibility: 'hidden' }}
+                            onLoad={(event) => (event.currentTarget.style.visibility = 'visible')}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {futureCard === CARD_TYPES.ALTER_THE_FUTURE && (
+                    <div className="flex flex-col items-center gap-3">
+                      <h3 className="font-black italic text-lg uppercase text-zinc-400 tracking-tighter">
+                        Sequence Order
+                      </h3>
+                      <div className="flex items-center gap-3 text-3xl font-black text-black">
+                        <input
+                          className="w-12 h-12 order-input bg-zinc-100 border-4 border-black rounded-2xl text-center outline-none focus:bg-indigo-50
+                          shadow-[2px_2px_0_0_#000]"
+                          name="order1"
+                          placeholder="1"
+                          maxLength={1}
+                          onInput={onInputChange}
+                        />
+                        <span className="opacity-30">—</span>
+                        <input
+                          className="w-12 h-12 order-input bg-zinc-100 border-4 border-black rounded-2xl text-center outline-none focus:bg-indigo-50
+                          shadow-[2px_2px_0_0_#000]"
+                          name="order2"
+                          placeholder="2"
+                          maxLength={1}
+                          onInput={onInputChange}
+                        />
+                        <span className="opacity-30">—</span>
+                        <input
+                          className="w-12 h-12 order-input bg-zinc-100 border-4 border-black rounded-2xl text-center outline-none focus:bg-indigo-50
+                          shadow-[2px_2px_0_0_#000]"
+                          name="order3"
+                          placeholder="3"
+                          maxLength={1}
+                          onInput={onInputChange}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex flex-col md:flex-row justify-center gap-6 mt-3">
+                    {futureCard === CARD_TYPES.ALTER_THE_FUTURE && (
+                      <button
+                        className="bg-indigo-600 text-white px-8 py-4 rounded-2xl border-[6px] border-black shadow-[6px_6px_0_0_#000] font-black italic
+                    uppercase text-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group"
+                        type="submit"
+                      >
+                        <ArrowRightLeft className="group-hover:rotate-180 transition-transform duration-500" />{' '}
+                        Rewrite Reality
+                      </button>
+                    )}
+                    <button
+                      className="px-8 py-4 border-[6px] border-black rounded-2xl font-black italic uppercase text-xl hover:bg-zinc-100 shadow-[6px_6px_0_0_#000]"
+                      type="button"
+                      onClick={() => setFutureCard(null)}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
           {showExplodeModal && (
             <div className="fixed inset-0 z-600 bg-black/90 flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in">
               <div
@@ -458,6 +734,8 @@ export const GameEngine = ({ lobbyId, gameId, playerName }) => {
                     className="w-60 h-72"
                     loading="eager"
                     fetchPriority="high"
+                    style={{ visibility: 'hidden' }}
+                    onLoad={(event) => (event.currentTarget.style.visibility = 'visible')}
                   />
                 )}
                 <div className="space-y-4 pt-2">

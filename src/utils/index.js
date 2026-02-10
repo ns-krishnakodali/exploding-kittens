@@ -1,2 +1,2 @@
 export * from './local-storage';
-export * from './unique-code';
+export * from './generator-utils';
