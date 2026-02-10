@@ -2,15 +2,15 @@ import './game-arena-page.css';
 
 import { useState, useEffect } from 'react';
 import {
-  Bomb,
-  Zap,
-  Skull,
   AlertTriangle,
-  History,
   ArrowDownCircle,
-  PawPrint,
-  Inbox,
   ArrowRightLeft,
+  Bomb,
+  History,
+  Inbox,
+  PawPrint,
+  Skull,
+  Zap,
 } from 'lucide-react';
 
 import { CARD_TYPES, ERROR_MESSAGE, EXPLOSION_PREFIX } from '../../constants';
@@ -39,7 +39,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
   const [playerDetails, setPlayersDetails] = useState([]);
   const [statusMessage, setStatusMessage] = useState(null);
   const [showExplodeModal, setShowExplodeModal] = useState(false);
-  const [futureCard, setFutureCard] = useState(CARD_TYPES.ALTER_THE_FUTURE);
+  const [futureCard, setFutureCard] = useState(null);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -193,30 +193,6 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
       case CARD_TYPES.CAT_CARD: {
         break;
       }
-      case CARD_TYPES.DEFUSE: {
-        const newCardsDeck = [...cardsDeck];
-        const explosionCard = newCardsDeck.shift();
-        const randomIdx = getRandomInt(newCardsDeck.length + 1);
-        newCardsDeck.splice(randomIdx, 0, explosionCard);
-
-        const nextPlayerIdx = getNextPlayerIdx();
-        const status = await updatePostPlayState(
-          lobbyId,
-          playerName,
-          playerDetails[nextPlayerIdx]?.name,
-          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-          [{ playerName, cardName }, ...usedCardsDetails],
-          `${playerName} Defused the Explosion`,
-          null,
-          { original: newCardsDeck, backup: cardsDeck }
-        );
-
-        if (!status) {
-          console.error(`An issue occurred when ${cardName}`);
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
-        }
-        break;
-      }
       case CARD_TYPES.DRAW_FROM_THE_BOTTOM: {
         const status = await updatePostPlayState(
           lobbyId,
@@ -224,7 +200,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
           null,
           [...(updatedPlayerCards?.map((card) => card?.name) || [])],
           [{ playerName, cardName }, ...usedCardsDetails],
-          `${playerName} played Draw From The Bottom!`
+          `${playerName} Drew From The Bottom!`
         );
 
         if (!status) {
@@ -249,7 +225,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
           playerDetails[nextPlayerIdx]?.name,
           [...(updatedPlayerCards?.map((card) => card?.name) || [])],
           [{ playerName, cardName }, ...usedCardsDetails],
-          `${playerName} played Skip and dodged their turn.`
+          `${playerName} played Skip and dodged turn.`
         );
 
         if (!status) {
@@ -269,7 +245,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
         );
 
         if (status) {
-          setFutureCard(CARD_TYPES.ALTER_THE_FUTURE);
+          setFutureCard(CARD_TYPES.SEE_THE_FUTURE);
         } else {
           console.error(`An issue occurred when ${cardName}`);
           setToast({ message: ERROR_MESSAGE, type: 'error' });
@@ -279,14 +255,13 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
       case CARD_TYPES.SHUFFLE: {
         const shuffledCardsDeck = shuffleDeck(cardsDeck);
 
-        const nextPlayerIdx = getNextPlayerIdx();
         const status = await updatePostPlayState(
           lobbyId,
           playerName,
-          playerDetails[nextPlayerIdx]?.name,
+          null,
           [...(updatedPlayerCards?.map((card) => card?.name) || [])],
           [{ playerName, cardName }, ...usedCardsDetails],
-          `${playerName} played Skip and dodged their turn.`,
+          `${playerName} Shuffled the deck.`,
           { original: shuffledCardsDeck, backup: cardsDeck }
         );
 
@@ -309,6 +284,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
   // Handles the Alter the Future action by validating and reordering the top cards.
   const handleAlterFuture = async (event) => {
     event?.preventDefault();
+
     const formData = new FormData(event.target);
     const orderValues = [
       formData.get('order1'),
@@ -339,21 +315,63 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
   };
 
   // Handles the defuse action when a player draws an Exploding Kitten.
-  const handleDefusePlayer = async () => {
-    const defuseIndex = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.DEFUSE));
+  const handleDefuseCardPlay = async (event) => {
+    event?.preventDefault();
 
-    if (defuseIndex !== -1) {
-      handlePlayCard(playerCards[defuseIndex]?.name, defuseIndex);
-    } else {
+    const defuseIdx = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.DEFUSE));
+    if (defuseIdx === -1) {
       console.log('Cannot find defuse card');
       setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setShowExplodeModal(false);
+      return;
     }
 
+    const formData = new FormData(event.target);
+    const positionInput = formData.get('position');
+
+    const newCardsDeck = [...cardsDeck];
+    const explosionCard = newCardsDeck.shift();
+
+    const position = Number(positionInput);
+    if (
+      positionInput &&
+      (!Number.isInteger(position) || position < 1 || position > newCardsDeck.length + 1)
+    ) {
+      setToast({ message: 'Invalid position', type: 'info' });
+      return;
+    }
+
+    const insertIndex = positionInput ? position - 1 : getRandomInt(newCardsDeck.length + 1);
+    newCardsDeck.splice(insertIndex, 0, explosionCard);
+
+    const updatedPlayerCards = [
+      ...playerCards.slice(0, defuseIdx),
+      ...playerCards.slice(defuseIdx + 1),
+    ];
+
+    const cardName = playerCards[defuseIdx]?.name;
+
+    const nextPlayerIdx = getNextPlayerIdx();
+    const status = await updatePostPlayState(
+      lobbyId,
+      playerName,
+      playerDetails[nextPlayerIdx]?.name,
+      [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+      [{ playerName, cardName }, ...usedCardsDetails],
+      `${playerName} Defused the Explosion`,
+      null,
+      { original: newCardsDeck, backup: cardsDeck }
+    );
+
+    if (!status) {
+      console.error(`An issue occurred when ${cardName}`);
+      setToast({ message: ERROR_MESSAGE, type: 'error' });
+    }
     setShowExplodeModal(false);
   };
 
   // Handles player elimination from an explosion and processes winning logic.
-  const handleExplodePlayer = async () => {
+  const handleExplodeCardPlay = async () => {
     const updatedPlayerDetails = playerDetails?.map((player) =>
       player.name === playerName ? { ...player, inGame: false } : player
     );
@@ -419,11 +437,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
           )}
           <div className="flex flex-col grow overflow-x-hidden">
             <section className="p-6 md:p-8 flex flex-col items-center justify-center gap-10">
-              <div className="flex flex-col md:flex-row gap-10 md:gap-20 items-center relative">
+              <div className="flex flex-col md:flex-row gap-10 md:gap-40 pt-2 items-center relative">
                 <div className="flex flex-col items-center gap-3">
-                  <p className="font-black italic uppercase text-xs text-black/50 tracking-widest">
-                    Draw Pile
-                  </p>
                   <div className="relative group">
                     <div className="absolute inset-0 translate-x-3 translate-y-3 bg-black rounded-4xl" />
                     <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-zinc-200 border-4 border-black rounded-4xl" />
@@ -452,11 +467,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
                       </div>
                     </button>
                   </div>
+                  <p className="font-black italic uppercase text-xs text-black/50 tracking-widest mt-1">
+                    Draw Pile
+                  </p>
                 </div>
                 <div className="flex flex-col items-center gap-3">
-                  <p className="font-black italic uppercase text-xs text-black/50 tracking-widest">
-                    Played Deck
-                  </p>
                   <div className="relative w-60 h-72">
                     <div className="absolute inset-0 border-4 border-black border-dashed rounded-4xl opacity-20 flex items-center justify-center">
                       <ArrowDownCircle size={32} className="text-black/30" />
@@ -465,20 +480,22 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
                       usedCardsDetails.map((cardDetails, idx) => (
                         <div
                           key={idx}
+                          className={`absolute inset-0 border-4 border-black rounded-4xl p-1 flex flex-col justify-center shadow-[2px_2px_0_0_rgba(0,0,0,1)]
+                            animate-in slide-in-from-top-4`}
                           style={{
                             transform: `rotate(${idx * -6}deg) translate(${idx * -10}px, ${idx * -4}px)`,
                             zIndex: 10 - idx,
                           }}
-                          className={`absolute inset-0 border-4 border-black rounded-4xl p-5 flex flex-col justify-between shadow-[4px_4px_0_0_rgba(0,0,0,1)]
-                         animate-in slide-in-from-top-4`}
                         >
-                          <p className="font-black italic uppercase text-[8px] leading-none">
-                            {cardDetails?.cardName}
-                          </p>
-                          <PawPrint size={40} className="mx-auto" />
-                          <p className="font-bold text-[7px] leading-tight uppercase opacity-80">
-                            {cardDetails?.cardName}
-                          </p>
+                          <img
+                            src={allCardImages?.[cardDetails?.cardName]?.url}
+                            alt={cardDetails?.cardName}
+                            className="w-60 h-68"
+                            loading="eager"
+                            fetchPriority="high"
+                            style={{ visibility: 'hidden' }}
+                            onLoad={(event) => (event.currentTarget.style.visibility = 'visible')}
+                          />
                         </div>
                       ))
                     ) : (
@@ -487,6 +504,9 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
                       </div>
                     )}
                   </div>
+                  <p className="font-black italic uppercase text-xs text-black/50 tracking-widest mt-1">
+                    Played Deck
+                  </p>
                 </div>
               </div>
             </section>
@@ -594,13 +614,12 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
                     onClick={() => handlePlayCard(cardName, idx)}
                     disabled={
                       (!isUserTurn && !cardName.startsWith(CARD_TYPES.NOPE)) ||
-                      cardName.includes(CARD_TYPES.DEFUSE)
+                      cardName.includes(CARD_TYPES.DEFUSE) ||
+                      !(playerDetails.find((p) => p?.name === playerName)?.inGame ?? false)
                     }
-                    className={`w-60 h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
-                  ${
-                    (isUserTurn || cardName.startsWith(CARD_TYPES.NOPE)) &&
-                    'hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] shadow-[4px_4px_0_0_#000] active:scale-95'
-                  }`}
+                    className="w-60 h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
+                    shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                    disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100"
                   >
                     <img
                       src={url}
@@ -721,8 +740,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
           {showExplodeModal && (
             <div className="fixed inset-0 z-600 bg-black/90 flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in">
               <div
-                className="flex flex-col items-center max-w-md w-full bg-white border-10 border-black p-10 rounded-[3rem] text-center space-y-6 shadow-[20px_20px_0_0_#ef4444]
-            animate-in zoom-in"
+                className="flex flex-col items-center max-w-md w-full bg-white border-10 border-black p-6 rounded-[3rem] text-center space-y-6
+                shadow-[12px_12px_0_0_#ef4444] animate-in zoom-in"
               >
                 <h1 className="text-5xl font-black italic uppercase text-red-600 tracking-tighter drop-shadow-[4px_4px_0_#000]">
                   Boom!
@@ -738,22 +757,43 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
                     onLoad={(event) => (event.currentTarget.style.visibility = 'visible')}
                   />
                 )}
-                <div className="space-y-4 pt-2">
+
+                <div>
                   {playerCards.some((playerCard) =>
                     playerCard?.name?.startsWith(CARD_TYPES.DEFUSE)
                   ) ? (
-                    <button
-                      onClick={handleDefusePlayer}
-                      className="w-fit bg-green-500 text-white uppercase font-black italic text-3xl px-8 py-6 rounded-[2.5rem] border-8 border-black
-                      shadow-[10px_10px_0_0_#000] hover:bg-green-600 transition-all"
-                    >
-                      Defuse
-                    </button>
+                    <form onSubmit={handleDefuseCardPlay}>
+                      <div className="flex flex-col items-center gap-2 mb-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="bg-red-600 text-white p-3 rounded-xl font-black italic uppercase text-xs tracking-widest">
+                            Reinsert Card
+                          </span>
+                          <input
+                            className="w-12 h-12 order-input bg-white border-4 border-black rounded-2xl text-center font-black text-2xl outline-none
+                            focus:bg-yellow-100 shadow-[2px_2px_0_0_#000]"
+                            name="position"
+                            placeholder="#"
+                            maxLength={2}
+                          />
+                        </div>
+                        <p className="text-xs font-black uppercase text-black/60 tracking-widest">
+                          Deck Size: {Math.max((cardsDeck?.length || 0) - 1, 0)}
+                        </p>
+                      </div>
+                      <button
+                        className="w-fit bg-green-500 text-white uppercase font-black italic text-3xl px-6 py-4 rounded-[2.5rem] border-8 border-black
+                        shadow-[4px_4px_0_0_#000] hover:bg-green-600 transition-all"
+                        type="submit"
+                      >
+                        Defuse
+                      </button>
+                    </form>
                   ) : (
                     <button
-                      onClick={handleExplodePlayer}
-                      className="w-fit bg-red-600 text-white uppercase font-black italic text-3xl px-8 py-6 rounded-[2.5rem] border-8 border-black
-                      shadow-[10px_10px_0_0_#000]"
+                      className="w-fit bg-red-600 text-white uppercase font-black italic text-3xl px-6 py-4 rounded-[2.5rem] border-8 border-black
+                       shadow-[4px_4px_0_0_#000]"
+                      type="button"
+                      onClick={handleExplodeCardPlay}
                     >
                       Exploded
                     </button>

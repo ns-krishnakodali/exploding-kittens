@@ -100,7 +100,7 @@ export const updatePostDrawState = async (
     updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
     updates[`/lobby/${lobbyId}/players/${playerName}/inGame`] = inGameStatus;
     updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
-    if (statusMessage) updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
+    updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
 
     await runTransaction(ref(db, `/lobby/${lobbyId}/attackStack`), (currentAttackStack) => {
       if (!currentAttackStack || currentAttackStack <= 0) return currentAttackStack;
@@ -148,10 +148,12 @@ export const updatePostPlayState = async (
   }
 };
 
+// Updates cards deck and resets the status message.
 export const updateCardsDeck = async (lobbyId, cardsDeck) => {
   try {
     await update(ref(db, `lobby/${lobbyId}`), {
-      cardsDeck: cardsDeck,
+      cardsDeck,
+      statusMessage: '',
     });
     return true;
   } catch (error) {
