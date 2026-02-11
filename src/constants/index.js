@@ -33,9 +33,11 @@ export const LOADING_MESSAGES = [
   'Negotiating With Unstable Cats',
 ];
 
+export const ATTACK_PREFIX = 'Attack';
 export const EXPLOSION_PREFIX = 'Explo';
 
 export const ERROR_MESSAGE = 'Something went wrong, try again';
 export const UNKOWN_ERROR = 'An unknown error occurred';
+export const CHOOSE_ANOTHER_PLAYER = 'You must choose another player';
 
-export const WINNING_MESSAGE = "The kittens exploded. Your ego didn't. Champion!";
+export const WINNING_MESSAGE = "The kittens exploded. Your ego didn't, Champion!";

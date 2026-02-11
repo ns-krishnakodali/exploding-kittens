@@ -1,6 +1,6 @@
 import './game-arena-page.css';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   AlertTriangle,
   ArrowDownCircle,
@@ -17,7 +17,14 @@ import {
   Zap,
 } from 'lucide-react';
 
-import { CARD_TYPES, ERROR_MESSAGE, EXPLOSION_PREFIX, WINNING_MESSAGE } from '../../constants';
+import {
+  ATTACK_PREFIX,
+  CARD_TYPES,
+  CHOOSE_ANOTHER_PLAYER,
+  ERROR_MESSAGE,
+  EXPLOSION_PREFIX,
+  WINNING_MESSAGE,
+} from '../../constants';
 import { Loading, Toast } from '../../components';
 import {
   getAllCardsImages,
@@ -43,10 +50,22 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   const [playerCards, setPlayerCards] = useState([]);
   const [playerDetails, setPlayersDetails] = useState([]);
   const [statusMessage, setStatusMessage] = useState(null);
-  const [showExplodeModal, setShowExplodeModal] = useState(false);
   const [futureCard, setFutureCard] = useState(null);
+  const [playerAction, setPlayerAction] = useState(null);
   const [winnerName, setWinnerName] = useState(null);
+  const [explosionCardIdx, setExplosionCardIdx] = useState(null);
   const [toast, setToast] = useState(null);
+
+  const playersContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (playerAction && playersContainerRef.current) {
+      playersContainerRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [playerAction]);
 
   useEffect(() => {
     const fetchAllCardImages = async () => {
@@ -67,6 +86,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       setAttackStack(lobbyDetails?.attackStack || 0);
       setCardsDeck(lobbyDetails?.cardsDeck);
       setUsedCardsDetails(lobbyDetails?.usedCardsDetails?.slice(0, 3) || []);
+      setPlayerAction(null);
 
       const playerCardsInfo = getPlayerCards(lobbyDetails, playerName, allCardImages);
       setPlayerCards(playerCardsInfo);
@@ -77,7 +97,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       if (lobbyDetails?.statusMessage) {
         const lobbyStatusMessage = lobbyDetails.statusMessage;
         setStatusMessage({
-          type: lobbyStatusMessage.includes(EXPLOSION_PREFIX) ? 'error' : 'info',
+          type:
+            lobbyStatusMessage.includes(EXPLOSION_PREFIX) ||
+            lobbyStatusMessage.includes(ATTACK_PREFIX)
+              ? 'error'
+              : 'info',
           message: lobbyStatusMessage,
         });
       }
@@ -124,7 +148,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const cardIndex = drawFromBottom ? cardsDeck.length - 1 : 0;
     const drawnCardName = cardsDeck[cardIndex];
     if (drawnCardName?.startsWith(CARD_TYPES.EXPLODING_KITTEN)) {
-      setShowExplodeModal(true);
+      setExplosionCardIdx(cardIndex);
       return;
     }
 
@@ -159,7 +183,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   };
 
   // Handles playing a card and triggers the corresponding card's game logic.
-  const handlePlayCard = async (cardName, cardIdx) => {
+  const handlePlayCard = async (cardName, cardIdx, selectedPlayerName = '') => {
     const updatedPlayerCards =
       cardIdx >= 0 && cardIdx < playerCards.length
         ? [...playerCards.slice(0, cardIdx), ...playerCards.slice(cardIdx + 1)]
@@ -229,23 +253,6 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       case CARD_TYPES.NOPE: {
         break;
       }
-      case CARD_TYPES.SKIP: {
-        const nextPlayerIdx = getNextPlayerIdx();
-        const status = await updatePostPlayState(
-          lobbyId,
-          playerName,
-          playerDetails[nextPlayerIdx]?.name,
-          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-          [{ playerName, cardName }, ...usedCardsDetails],
-          `${playerName} played Skip and dodged turn.`
-        );
-
-        if (!status) {
-          console.error(`An issue occurred when ${cardName}`);
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
-        }
-        break;
-      }
       case CARD_TYPES.SEE_THE_FUTURE: {
         const status = await updatePostPlayState(
           lobbyId,
@@ -284,7 +291,49 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         }
         break;
       }
+      case CARD_TYPES.SKIP: {
+        const nextPlayerIdx = getNextPlayerIdx();
+        const status = await updatePostPlayState(
+          lobbyId,
+          playerName,
+          attackStack > 1 ? playerName : playerDetails[nextPlayerIdx]?.name,
+          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
+          [{ playerName, cardName }, ...usedCardsDetails],
+          `${playerName} played Skip and dodged turn.`,
+          attackStack - 1
+        );
+
+        if (!status) {
+          console.error(`An issue occurred when ${cardName}`);
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+        }
+        break;
+      }
       case CARD_TYPES.TARGETTED_ATTACK: {
+        if (playerAction && selectedPlayerName) {
+          const status = await updatePostPlayState(
+            lobbyId,
+            playerName,
+            selectedPlayerName,
+            [
+              ...((updatedPlayerCards?.length ? updatedPlayerCards : playerCards)?.map(
+                (card) => card?.name
+              ) || []),
+            ],
+            [{ playerName, cardName }, ...usedCardsDetails],
+            `${playerName} launched a Targetted Attack, Good luck!`,
+            attackStack + 2
+          );
+
+          if (!status) {
+            console.error(`An issue occurred when ${cardName}`);
+            setToast({ message: ERROR_MESSAGE, type: 'error' });
+          }
+          setPlayerAction(null);
+        } else {
+          setStatusMessage({ type: 'info', message: `Select a Player to pick` });
+          setPlayerAction({ cardName, cardIdx });
+        }
         break;
       }
       default:
@@ -327,15 +376,27 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     setFutureCard(null);
   };
 
+  // Handles player selection when an interactive card is active
+  const handlePlayerClick = (selectedPlayerName) => {
+    if (!playerAction) return;
+
+    const { cardName, cardIdx } = playerAction;
+    if (playerName === selectedPlayerName) {
+      setToast({ message: CHOOSE_ANOTHER_PLAYER, type: 'info' });
+      return;
+    }
+    handlePlayCard(cardName, cardIdx, selectedPlayerName);
+  };
+
   // Handles the defuse action when a player draws an Exploding Kitten.
   const handleDefuseCardPlay = async (event) => {
     event?.preventDefault();
 
     const defuseIdx = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.DEFUSE));
-    if (defuseIdx === -1) {
-      console.error('Cannot find defuse card');
+    if (defuseIdx === -1 || explosionCardIdx === null) {
+      console.error('Defuse card missing or invalid explosion card index');
       setToast({ message: ERROR_MESSAGE, type: 'error' });
-      setShowExplodeModal(false);
+      setExplosionCardIdx(null);
       return;
     }
 
@@ -343,7 +404,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const positionInput = formData.get('position');
 
     const newCardsDeck = [...cardsDeck];
-    const explosionCard = newCardsDeck.shift();
+    const [explosionCard] = newCardsDeck.splice(explosionCardIdx, 1);
 
     const position = Number(positionInput);
     if (
@@ -380,7 +441,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       console.error(`An issue occurred when ${cardName}`);
       setToast({ message: ERROR_MESSAGE, type: 'error' });
     }
-    setShowExplodeModal(false);
+    setExplosionCardIdx(null);
   };
 
   // Handles player elimination from an explosion and processes winning logic.
@@ -401,7 +462,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       `BOOM! ${playerName} just exploded, LOL!`
     );
 
-    setShowExplodeModal(false);
+    setExplosionCardIdx(null);
 
     if (!status) {
       setToast({ message: ERROR_MESSAGE, type: 'error' });
@@ -425,7 +486,10 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     <>
       <header className="w-full border-b-4 border-black p-4 md:px-6 md:pt-4 md:pb-6 flex justify-between items-center shadow-[0_4px_0_0_#000]">
         <div className="flex items-center gap-4 md:gap-8">
-          <div className="bg-red-600 text-white px-6 py-2 border-4 border-black shadow-[6px_6px_0_0_#000] font-black italic uppercase text-xl md:text-3xl tracking-tighter">
+          <div
+            className="bg-red-600 text-white px-6 py-2 border-4 border-black shadow-[6px_6px_0_0_#000] font-black italic uppercase text-xl md:text-3xl
+            tracking-tighter"
+          >
             Exploding Kittens
           </div>
           <div className="hidden sm:flex items-center gap-6 border-l-4 border-black/10 pl-6">
@@ -464,9 +528,10 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     <div className="absolute inset-0 translate-x-3 translate-y-3 bg-black rounded-4xl" />
                     <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-zinc-200 border-4 border-black rounded-4xl" />
                     <button
-                      onClick={handleDrawCard}
+                      onClick={() => handleDrawCard()}
                       disabled={!isUserTurn}
-                      className={`w-60 h-72 border-4 border-black rounded-4xl transition-all relative flex flex-col items-center justify-center gap-4 overflow-hidden ${
+                      className={`w-60 h-72 border-4 border-black rounded-4xl transition-all relative flex flex-col items-center justify-center gap-4
+                      overflow-hidden ${
                         isUserTurn
                           ? 'bg-white hover:-translate-y-1 active:translate-y-1 shadow-[4px_4px_0_0_#000]'
                           : 'bg-zinc-300 opacity-60'
@@ -568,17 +633,23 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                   )}
                 </div>
               </div>
-              <div className="max-w-7xl mx-auto my-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-12 gap-y-6 px-4">
+              <div
+                ref={playersContainerRef}
+                tabIndex={-1}
+                className="max-w-7xl mx-auto my-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-12 gap-y-6 px-4"
+              >
                 {playerDetails.map((player, idx) => (
-                  <div
+                  <button
                     key={idx}
-                    onClick={() => {}}
+                    onClick={() => handlePlayerClick(player.name)}
+                    disabled={!playerAction}
                     className={`p-3 border-4 border-black rounded-2xl transition-all flex items-center gap-3 ${
                       !player.inGame
                         ? 'bg-zinc-800 border-zinc-700 grayscale opacity-40 text-zinc-600 shadow-none'
                         : player.name === currentPlayerName
                           ? 'bg-yellow-300 shadow-[4px_4px_0_0_#ef4444] scale-105 z-10 text-black'
-                          : 'bg-white shadow-[4px_4px_0_0_#000] hover:bg-zinc-200 cursor-pointer'
+                          : 'bg-white shadow-[4px_4px_0_0_#000] hover:bg-zinc-200 cursor-pointer disabled:hover:bg-white disabled:cursor-not-allowed' +
+                            'disabled:opacity-60 disabled:shadow-none'
                     }`}
                   >
                     <div
@@ -588,7 +659,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                       {!player.inGame ? <Skull size={20} /> : player.name[0]}
                     </div>
                     <div className="grow min-w-0">
-                      <h3 className="font-black italic uppercase text-xs truncate tracking-tight">
+                      <h3 className="font-black italic uppercase text-xs text-start truncate tracking-tight">
                         {player.name}
                       </h3>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -597,7 +668,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </section>
@@ -614,7 +685,9 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
                       Your Arsenal
                     </h2>
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">
+                    <p
+                      className={`text-[10px] font-black uppercase tracking-widest mt-1 ${isUserTurn ? 'text-yellow-500' : 'text-zinc-400'}`}
+                    >
                       Phase: {isUserTurn ? 'Your Turn' : 'Surveillance Only'}
                     </p>
                   </div>
@@ -663,8 +736,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
             <div className="fixed inset-0 z-500 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
               <form onSubmit={handleAlterFuture}>
                 <div
-                  className="max-w-4xl w-full bg-white border-10 border-black p-8 md:px-12 md:py-8 rounded-[4rem] text-center space-y-6 shadow-[10px_10px_0_0_#fb7185]
-                  animate-in zoom-in overflow-y-auto max-h-[90vh]"
+                  className="max-w-4xl w-full bg-white border-10 border-black p-8 md:px-12 md:py-8 rounded-[4rem] text-center space-y-6
+                  shadow-[10px_10px_0_0_#fb7185] animate-in zoom-in overflow-y-auto max-h-[90vh]"
                 >
                   <div className="space-y-2 mb-6">
                     <div
@@ -760,7 +833,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               </form>
             </div>
           )}
-          {showExplodeModal && (
+          {explosionCardIdx !== null && (
             <div className="fixed inset-0 z-600 bg-black/90 flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in">
               <div
                 className="flex flex-col items-center max-w-md w-full bg-white border-10 border-black p-6 rounded-[3rem] text-center space-y-6
@@ -769,9 +842,9 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 <h1 className="text-5xl font-black italic uppercase text-red-600 tracking-tighter drop-shadow-[4px_4px_0_#000]">
                   Boom!
                 </h1>
-                {cardsDeck?.[0] && (
+                {cardsDeck?.[explosionCardIdx] && (
                   <img
-                    src={allCardImages?.[cardsDeck[0]]?.url}
+                    src={allCardImages?.[cardsDeck[explosionCardIdx]]?.url}
                     alt="Exploding Card"
                     className="w-60 h-72"
                     loading="eager"
@@ -780,7 +853,6 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     onLoad={(event) => (event.currentTarget.style.visibility = 'visible')}
                   />
                 )}
-
                 <div>
                   {playerCards.some((playerCard) =>
                     playerCard?.name?.startsWith(CARD_TYPES.DEFUSE)

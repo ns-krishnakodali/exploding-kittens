@@ -15,7 +15,7 @@ export const LandingPage = ({ onCreate, onJoin }) => {
           <span className="text-red-600 ml-4">KITTENS</span>
         </h1>
       </div>
-      <div className="w-full max-w-xl bg-white border-4 border-black p-10 rounded-[3rem] shadow-[12px_12px_0_0_#000] relative overflow-hidden">
+      <div className="w-full max-w-xl bg-white border-4 border-black p-10 rounded-[3rem] shadow-[10px_10px_0_0_#000] relative overflow-hidden">
         <div
           className="absolute top-0 right-0 w-32 h-32 bg-yellow-400 border-b-4 border-l-4 border-black rounded-bl-[3rem]
           flex items-center justify-center -mr-4 -mt-4 transform rotate-12"
@@ -30,7 +30,7 @@ export const LandingPage = ({ onCreate, onJoin }) => {
               </label>
               <input
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(event) => setName(event.target.value)}
                 placeholder="Survivor Name"
                 className="w-full bg-zinc-100 border-2 border-black rounded-2xl px-5 py-4 font-bold text-lg focus:ring-4 ring-red-200
                 outline-none transition-all"
@@ -88,7 +88,7 @@ export const LandingPage = ({ onCreate, onJoin }) => {
         </div>
       </div>
       <div className="grid grid-cols-3 gap-6 opacity-80">
-        <div className="bg-blue-400 border-4 border-black p-4 rounded-2xl rotate-3 shadow-[4px_4px_0_0_#000] flex flex-col items-center gap-2">
+        <div className="bg-green-400 border-4 border-black p-4 rounded-2xl rotate-3 shadow-[4px_4px_0_0_#000] flex flex-col items-center gap-2">
           <Shield size={28} />
           <span className="font-black text-[10px] uppercase">Defuse</span>
         </div>

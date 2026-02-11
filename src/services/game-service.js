@@ -133,7 +133,8 @@ export const updatePostPlayState = async (
     updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
     updates[`/lobby/${lobbyId}/usedCardsDetails`] = usedCardsDetails;
     updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
-    if (attackStack !== null) updates[`/lobby/${lobbyId}/attackStack`] = attackStack;
+    if (attackStack !== null && attackStack >= 0)
+      updates[`/lobby/${lobbyId}/attackStack`] = attackStack;
     if (deckSnapshot !== null) {
       const { original: cardsDeck, backup: backupCardsDeck } = deckSnapshot;
       updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
