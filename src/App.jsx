@@ -77,6 +77,10 @@ const App = () => {
     setGameState(GAME_STATE.GAME);
   };
 
+  const endGame = () => {
+    setGameState(GAME_STATE.LANDING);
+  };
+
   if (loading) return <Loading />;
 
   return (
@@ -97,7 +101,12 @@ const App = () => {
           />
         )}
         {gameState === GAME_STATE.GAME && (
-          <GameArenaPage lobbyId={lobbyId} gameId={gameId} playerName={playerName} />
+          <GameArenaPage
+            lobbyId={lobbyId}
+            gameId={gameId}
+            playerName={playerName}
+            endGame={endGame}
+          />
         )}
       </main>
     </div>

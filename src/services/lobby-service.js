@@ -44,7 +44,7 @@ export const createLobby = async () => {
 };
 
 export const getLobbyId = async (displayCode) => {
-  const codeRef = ref(db, `lobbyCodes/${displayCode}`);
+  const codeRef = ref(db, `lobbyCodes/${displayCode.trim()}`);
   const snapshot = await get(codeRef);
 
   if (!snapshot.exists()) {

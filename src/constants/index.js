@@ -37,3 +37,5 @@ export const EXPLOSION_PREFIX = 'Explo';
 
 export const ERROR_MESSAGE = 'Something went wrong, try again';
 export const UNKOWN_ERROR = 'An unknown error occurred';
+
+export const WINNING_MESSAGE = "The kittens exploded. Your ego didn't. Champion!";

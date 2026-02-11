@@ -8,17 +8,22 @@ import {
   Bomb,
   History,
   Inbox,
+  PartyPopper,
   PawPrint,
+  RotateCcw,
   Skull,
+  Sparkles,
+  Trophy,
   Zap,
 } from 'lucide-react';
 
-import { CARD_TYPES, ERROR_MESSAGE, EXPLOSION_PREFIX } from '../../constants';
+import { CARD_TYPES, ERROR_MESSAGE, EXPLOSION_PREFIX, WINNING_MESSAGE } from '../../constants';
 import { Loading, Toast } from '../../components';
 import {
   getAllCardsImages,
   getPlayerCards,
   getPlayerDetails,
+  setGameWinner,
   shuffleDeck,
   subscribeToGameLobby,
   updateCardsDeck,
@@ -27,7 +32,7 @@ import {
 } from '../../services';
 import { getRandomInt } from '../../utils';
 
-export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
+export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   const [allCardImages, setAllCardImages] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUserTurn, setIsUserTurn] = useState(true);
@@ -40,6 +45,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
   const [statusMessage, setStatusMessage] = useState(null);
   const [showExplodeModal, setShowExplodeModal] = useState(false);
   const [futureCard, setFutureCard] = useState(null);
+  const [winnerName, setWinnerName] = useState(null);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -75,6 +81,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
           message: lobbyStatusMessage,
         });
       }
+
+      if (lobbyDetails?.winnerName) setWinnerName(lobbyDetails.winnerName);
     });
 
     return unsubscribe;
@@ -123,12 +131,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
     const playerCardsInfo = (updatedPlayerCards?.length ? updatedPlayerCards : playerCards) || [];
     const updatedDeck = drawFromBottom ? cardsDeck.slice(0, -1) : cardsDeck.slice(1);
 
+    const existingCardNames = playerCardsInfo?.map((card) => card?.name) ?? [];
+
     const nextPlayerIdx = getNextPlayerIdx();
     const status = await updatePostDrawState(
       lobbyId,
       playerName,
-      playerDetails[nextPlayerIdx]?.name,
-      [...(playerCardsInfo?.map((card) => card?.name) || []), drawnCardName],
+      attackStack > 1 ? playerName : playerDetails[nextPlayerIdx]?.name,
+      drawnCardName?.includes(CARD_TYPES.DEFUSE)
+        ? [drawnCardName, ...existingCardNames]
+        : [...existingCardNames, drawnCardName],
       true,
       updatedDeck
     );
@@ -262,6 +274,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
           [...(updatedPlayerCards?.map((card) => card?.name) || [])],
           [{ playerName, cardName }, ...usedCardsDetails],
           `${playerName} Shuffled the deck.`,
+          null,
           { original: shuffledCardsDeck, backup: cardsDeck }
         );
 
@@ -320,7 +333,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
 
     const defuseIdx = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.DEFUSE));
     if (defuseIdx === -1) {
-      console.log('Cannot find defuse card');
+      console.error('Cannot find defuse card');
       setToast({ message: ERROR_MESSAGE, type: 'error' });
       setShowExplodeModal(false);
       return;
@@ -388,8 +401,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
       `BOOM! ${playerName} just exploded, LOL!`
     );
 
-    if (!status) setToast({ message: ERROR_MESSAGE, type: 'error' });
     setShowExplodeModal(false);
+
+    if (!status) {
+      setToast({ message: ERROR_MESSAGE, type: 'error' });
+    } else {
+      const inGameNames =
+        updatedPlayerDetails.filter((player) => player?.inGame)?.map((player) => player?.name) ||
+        [];
+      if (inGameNames?.length === 1) setGameWinner(lobbyId, inGameNames[0]);
+    }
   };
 
   const onInputChange = (event) => {
@@ -615,7 +636,9 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
                     disabled={
                       (!isUserTurn && !cardName.startsWith(CARD_TYPES.NOPE)) ||
                       cardName.includes(CARD_TYPES.DEFUSE) ||
-                      !(playerDetails.find((p) => p?.name === playerName)?.inGame ?? false)
+                      !(
+                        playerDetails.find((player) => player?.name === playerName)?.inGame ?? false
+                      )
                     }
                     className="w-60 h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
                     shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
@@ -798,6 +821,53 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName }) => {
                       Exploded
                     </button>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+          {winnerName && (
+            <div className="fixed inset-0 z-700 bg-black/95 flex items-center justify-center p-6 backdrop-blur-xl animate-in fade-in duration-500">
+              <div
+                className="flex flex-col items-center max-w-2xl w-full bg-white border-12 border-black p-12 md:px-16 md:py-6 rounded-[5rem] text-center space-y-6
+                shadow-[18px_18px_0_0_#fbbf24] animate-in duration-700 relative overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-32 h-32 bg-yellow-400 -ml-16 -mt-16 rotate-45 border-8 border-black" />
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-red-600 -mr-16 -mb-16 rotate-45 border-8 border-black" />
+                <div className="relative z-10 space-y-6">
+                  <div
+                    className="bg-yellow-400 border-8 border-black rounded-full w-36 h-36 flex items-center justify-center mx-auto shadow-[10px_10px_0_0_#000]
+                    transform -rotate-3"
+                  >
+                    <Trophy size={72} className="text-black" />
+                  </div>
+                  <div className="space-y-4">
+                    <h1 className="text-4xl md:text-6xl font-black italic uppercase text-black tracking-tighter leading-none">
+                      Victory!
+                    </h1>
+                    <div
+                      className="bg-black text-white px-8 py-3 rounded-2xl border-4 border-yellow-400 inline-block font-black text-2xl md:text-4xl italic
+                      uppercase transform rotate-2 shadow-[6px_6px_0_0_#fbbf24]"
+                    >
+                      {winnerName}
+                    </div>
+                  </div>
+                  <p className="text-md md:text-xl font-black text-zinc-500 uppercase tracking-widest pt-3">
+                    {winnerName === playerName
+                      ? WINNING_MESSAGE
+                      : `${winnerName} wins. The rest? Cat-astrophic.`}
+                  </p>
+                </div>
+                <button
+                  onClick={endGame}
+                  className="w-fit relative z-10 bg-red-600 text-white font-black italic text-md md:text-2xl p-6 rounded-[3rem] border-8 border-black
+                  shadow-[8px_8px_0_0_#000] hover:bg-red-700 transition-all flex items-center justify-center gap-4"
+                >
+                  <RotateCcw size={32} /> RESTART BATTLE
+                </button>
+                <div className="flex justify-center gap-4 relative z-10">
+                  <PartyPopper className="text-yellow-500 animate-bounce" size={32} />
+                  <Sparkles className="text-red-600 animate-pulse" size={32} />
+                  <PartyPopper className="text-blue-500 animate-bounce delay-200" size={32} />
                 </div>
               </div>
             </div>

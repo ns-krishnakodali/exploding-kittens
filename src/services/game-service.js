@@ -162,6 +162,19 @@ export const updateCardsDeck = async (lobbyId, cardsDeck) => {
   }
 };
 
+// Sets the game winner for the lobby
+export const setGameWinner = async (lobbyId, winnerName) => {
+  try {
+    await update(ref(db, `lobby/${lobbyId}`), {
+      winnerName,
+    });
+    return true;
+  } catch (error) {
+    console.error('Error setting game winner:', error);
+    return false;
+  }
+};
+
 export const shuffleDeck = (deck) => {
   const shuffled = [...deck];
   for (let idx = shuffled.length - 1; idx > 0; idx--) {
