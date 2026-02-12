@@ -90,6 +90,7 @@ export const updatePostDrawState = async (
   playerCards,
   inGameStatus,
   cardsDeck,
+  usedCardsDetails,
   statusMessage = ''
 ) => {
   try {
@@ -100,6 +101,7 @@ export const updatePostDrawState = async (
     updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
     updates[`/lobby/${lobbyId}/players/${playerName}/inGame`] = inGameStatus;
     updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
+    updates[`/lobby/${lobbyId}/usedCardsDetails`] = usedCardsDetails;
     updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
 
     await runTransaction(ref(db, `/lobby/${lobbyId}/attackStack`), (currentAttackStack) => {
@@ -128,8 +130,7 @@ export const updatePostPlayState = async (
   try {
     const updates = {};
 
-    if (nextPlayerName !== undefined && nextPlayerName !== null)
-      updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
+    if (nextPlayerName) updates[`/lobby/${lobbyId}/currentPlayer`] = nextPlayerName;
     updates[`/lobby/${lobbyId}/players/${playerName}/deck`] = playerCards;
     updates[`/lobby/${lobbyId}/usedCardsDetails`] = usedCardsDetails;
     updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;

@@ -59,7 +59,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
         }
       }
     } catch (err) {
-      console.log('Copy Failed', err);
+      console.error('Copy Failed', err);
     }
   };
 

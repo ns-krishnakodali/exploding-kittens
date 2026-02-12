@@ -1,8 +1,8 @@
 import { get, off, onValue, push, ref, set, update } from 'firebase/database';
 
+import { LOBBY_STATUS } from '../constants';
 import { db } from '../firebase';
 import { generateUniqueCode } from '../utils';
-import { LOBBY_STATUS } from '../constants';
 
 export const subscribeToGameStatus = (lobbyId, callback) => {
   const lobbyStatusRef = ref(db, `lobby/${lobbyId}/status`);

@@ -1,3 +1,4 @@
+// Game and Lobby States
 export const GAME_STATE = {
   LANDING: 'LANDING',
   LOBBY: 'LOBBY',
@@ -8,8 +9,10 @@ export const LOBBY_STATUS = {
   WAITING: 'WAITING',
   IN_GAME: 'IN GAME',
   FINISHED: 'FINISHED',
+  CANCELLED: 'CANCELLED',
 };
 
+// Card Types and Card Names
 export const CARD_TYPES = {
   ALTER_THE_FUTURE: 'Alter-the-Future',
   ATTACK: 'Attack',
@@ -25,6 +28,18 @@ export const CARD_TYPES = {
   TARGETTED_ATTACK: 'Targeted-Attack',
 };
 
+export const CAT_CARD_NAMES = [
+  'Beard-Cat',
+  'Cattermelon',
+  'Feral-Cat',
+  'Hairy-Potato-Cat',
+  'Rainbow-Ralphing-Cat',
+  'Tacocat',
+];
+
+export const WILD_CAT_CARD = 'Feral-Cat';
+
+// Loading Messages
 export const LOADING_MESSAGES = [
   'Hiding the Exploding Kittens',
   'Preparing to Ruin Friendships',
@@ -33,8 +48,13 @@ export const LOADING_MESSAGES = [
   'Negotiating With Unstable Cats',
 ];
 
+// Miscellaneous
 export const ATTACK_PREFIX = 'Attack';
 export const EXPLOSION_PREFIX = 'Explo';
+export const SELECT_PLAYER_PREFIX = 'Select a player to';
+
+export const DRAW_CARD = 'Draw-Card';
+export const PLAY_CARD = 'Play-Card';
 
 export const ERROR_MESSAGE = 'Something went wrong, try again';
 export const UNKOWN_ERROR = 'An unknown error occurred';

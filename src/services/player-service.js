@@ -1,7 +1,7 @@
-import { get, off, onValue, ref, remove, set } from 'firebase/database';
+import { child, get, off, onValue, ref, remove, set, update } from 'firebase/database';
 
-import { db } from '../firebase';
 import { GAME_STATE, LOBBY_STATUS } from '../constants';
+import { db } from '../firebase';
 
 export const subscribeToLobbyPlayers = (lobbyId, callback) => {
   const playersRef = ref(db, `lobby/${lobbyId}/players`);
@@ -68,7 +68,7 @@ export const addPlayerToLobby = async (lobbyId, playerName, pin, isHost = false)
     return gameState;
   }
 
-  if (lobbyStatus === LOBBY_STATUS.WAITING || lobbyStatus === LOBBY_STATUS.IN_GAME) {
+  if (lobbyStatus === LOBBY_STATUS.WAITING) {
     await set(playerRef, {
       pin,
       host: isHost,
@@ -93,13 +93,24 @@ export const updatePlayerCards = async (lobbyId, playerName, updatedCards) => {
   }
 };
 
+// Removes a player from the lobby and marks the lobby as CANCELLED if no players remain
 export const removePlayerFromLobby = async (lobbyId, playerName) => {
   try {
     const playerRef = ref(db, `lobby/${lobbyId}/players/${playerName}`);
     await remove(playerRef);
+
+    const lobbyRef = ref(db, `lobby/${lobbyId}`);
+    const playersSnapshot = await get(child(lobbyRef, 'players'));
+    const players = playersSnapshot.exists() ? playersSnapshot.val() : null;
+    if (!players || Object.keys(players).length === 0) {
+      await update(lobbyRef, {
+        status: LOBBY_STATUS.CANCELLED,
+      });
+    }
+
     return true;
   } catch (err) {
-    console.log('An error occurred when removing player', err);
+    console.error('An error occurred when removing player', err);
     return false;
   }
 };
@@ -115,6 +126,8 @@ export const makePlayerInactive = async (lobbyId, playerName) => {
   }
 };
 
+// Private Functions
+
 const lobbyStatusToGameState = (status) => {
   switch (status) {
     case LOBBY_STATUS.WAITING:
@@ -122,6 +135,7 @@ const lobbyStatusToGameState = (status) => {
     case LOBBY_STATUS.IN_GAME:
       return GAME_STATE.GAME;
     case LOBBY_STATUS.FINISHED:
+    case LOBBY_STATUS.CANCELLED:
     default:
       return GAME_STATE.LANDING;
   }

@@ -20,9 +20,14 @@ import {
 import {
   ATTACK_PREFIX,
   CARD_TYPES,
+  CAT_CARD_NAMES,
   CHOOSE_ANOTHER_PLAYER,
+  DRAW_CARD,
   ERROR_MESSAGE,
   EXPLOSION_PREFIX,
+  PLAY_CARD,
+  SELECT_PLAYER_PREFIX,
+  WILD_CAT_CARD,
   WINNING_MESSAGE,
 } from '../../constants';
 import { Loading, Toast } from '../../components';
@@ -45,10 +50,10 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   const [isUserTurn, setIsUserTurn] = useState(true);
   const [currentPlayerName, setCurrentPlayerName] = useState(null);
   const [attackStack, setAttackStack] = useState(0);
-  const [usedCardsDetails, setUsedCardsDetails] = useState([]);
-  const [cardsDeck, setCardsDeck] = useState([]);
-  const [playerCards, setPlayerCards] = useState([]);
-  const [playerDetails, setPlayersDetails] = useState([]);
+  const [usedCardsDetails, setUsedCardsDetails] = useState([]); // [{playerName, cardName, action}]
+  const [cardsDeck, setCardsDeck] = useState([]); // [cardName]
+  const [playerCards, setPlayerCards] = useState([]); // [{name, url}]
+  const [playerDetails, setPlayersDetails] = useState([]); // [{name, cardsCount, inGame}]
   const [statusMessage, setStatusMessage] = useState(null);
   const [futureCard, setFutureCard] = useState(null);
   const [playerAction, setPlayerAction] = useState(null);
@@ -85,7 +90,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       setCurrentPlayerName(lobbyDetails?.currentPlayer);
       setAttackStack(lobbyDetails?.attackStack || 0);
       setCardsDeck(lobbyDetails?.cardsDeck);
-      setUsedCardsDetails(lobbyDetails?.usedCardsDetails?.slice(0, 3) || []);
+      setUsedCardsDetails(lobbyDetails?.usedCardsDetails || []);
       setPlayerAction(null);
 
       const playerCardsInfo = getPlayerCards(lobbyDetails, playerName, allCardImages);
@@ -166,7 +171,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         ? [drawnCardName, ...existingCardNames]
         : [...existingCardNames, drawnCardName],
       true,
-      updatedDeck
+      updatedDeck,
+      [{ playerName, cardName: '', action: DRAW_CARD }, ...usedCardsDetails]
     );
 
     if (status) {
@@ -189,14 +195,17 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         ? [...playerCards.slice(0, cardIdx), ...playerCards.slice(cardIdx + 1)]
         : [];
 
-    switch (Object.values(CARD_TYPES).find((cardType) => cardName?.startsWith(cardType))) {
+    switch (
+      Object.values(CARD_TYPES).find((cardType) => cardName?.startsWith(cardType)) ||
+      CARD_TYPES.CAT_CARD
+    ) {
       case CARD_TYPES.ALTER_THE_FUTURE: {
         const status = await updatePostPlayState(
           lobbyId,
           playerName,
           null,
-          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-          [{ playerName, cardName }, ...usedCardsDetails],
+          updatedPlayerCards?.map((card) => card?.name) || [],
+          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
           `${playerName} Altered the Future!`
         );
 
@@ -214,8 +223,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           lobbyId,
           playerName,
           playerDetails[nextPlayerIdx]?.name,
-          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-          [{ playerName, cardName }, ...usedCardsDetails],
+          updatedPlayerCards?.map((card) => card?.name) || [],
+          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
           `${playerName} slapped down an Attack, Good luck!`,
           attackStack + 2
         );
@@ -227,6 +236,27 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         break;
       }
       case CARD_TYPES.CAT_CARD: {
+        if (!CAT_CARD_NAMES.includes(cardName)) {
+          console.error(`Invalid card name: ${cardName}`);
+          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          return;
+        }
+
+        const updatedUsedCardsDetails = selectedPlayerName
+          ? usedCardsDetails
+          : [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails];
+
+        let cardsCount = 0;
+        for (const usedCardDetail of updatedUsedCardsDetails) {
+          if (usedCardDetail?.playerName !== playerName) break;
+          if (
+            usedCardDetail?.cardName !== cardName &&
+            usedCardDetail?.cardName !== WILD_CAT_CARD &&
+            cardName !== WILD_CAT_CARD
+          )
+            break;
+          cardsCount++;
+        }
         break;
       }
       case CARD_TYPES.DRAW_FROM_THE_BOTTOM: {
@@ -234,8 +264,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           lobbyId,
           playerName,
           null,
-          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-          [{ playerName, cardName }, ...usedCardsDetails],
+          updatedPlayerCards?.map((card) => card?.name) || [],
+          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
           `${playerName} Drew From The Bottom!`
         );
 
@@ -258,8 +288,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           lobbyId,
           playerName,
           null,
-          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-          [{ playerName, cardName }, ...usedCardsDetails],
+          updatedPlayerCards?.map((card) => card?.name) || [],
+          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
           `${playerName} Saw the Future!`
         );
 
@@ -278,8 +308,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           lobbyId,
           playerName,
           null,
-          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-          [{ playerName, cardName }, ...usedCardsDetails],
+          updatedPlayerCards?.map((card) => card?.name) || [],
+          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
           `${playerName} Shuffled the deck.`,
           null,
           { original: shuffledCardsDeck, backup: cardsDeck }
@@ -297,8 +327,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           lobbyId,
           playerName,
           attackStack > 1 ? playerName : playerDetails[nextPlayerIdx]?.name,
-          [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-          [{ playerName, cardName }, ...usedCardsDetails],
+          updatedPlayerCards?.map((card) => card?.name) || [],
+          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
           `${playerName} played Skip and dodged turn.`,
           attackStack - 1
         );
@@ -320,7 +350,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 (card) => card?.name
               ) || []),
             ],
-            [{ playerName, cardName }, ...usedCardsDetails],
+            [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
             `${playerName} launched a Targetted Attack, Good luck!`,
             attackStack + 2
           );
@@ -331,15 +361,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           }
           setPlayerAction(null);
         } else {
-          setStatusMessage({ type: 'info', message: `Select a Player to pick` });
+          setStatusMessage({ type: 'info', message: `${SELECT_PLAYER_PREFIX} Target` });
           setPlayerAction({ cardName, cardIdx });
         }
         break;
       }
-      default:
-        console.error(`Invalid card type: ${cardName}`);
-        setToast({ message: ERROR_MESSAGE, type: 'error' });
-        break;
     }
   };
 
@@ -430,8 +456,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       lobbyId,
       playerName,
       playerDetails[nextPlayerIdx]?.name,
-      [...(updatedPlayerCards?.map((card) => card?.name) || [])],
-      [{ playerName, cardName }, ...usedCardsDetails],
+      updatedPlayerCards?.map((card) => card?.name) || [],
+      [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
       `${playerName} Defused the Explosion`,
       null,
       { original: newCardsDeck, backup: cardsDeck }
@@ -458,7 +484,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       updatedPlayerDetails[nextPlayerIdx]?.name,
       [...(playerCards?.map((card) => card?.name) || [])],
       false,
-      cardsDeck.slice(1),
+      [...cardsDeck.slice(0, explosionCardIdx), ...cardsDeck.slice(explosionCardIdx + 1)],
+      [
+        { playerName, cardName: cardsDeck[explosionCardIdx], action: DRAW_CARD },
+        ...usedCardsDetails,
+      ],
       `BOOM! ${playerName} just exploded, LOL!`
     );
 
@@ -563,27 +593,30 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                       <ArrowDownCircle size={32} className="text-black/30" />
                     </div>
                     {usedCardsDetails?.length > 0 ? (
-                      usedCardsDetails.map((cardDetails, idx) => (
-                        <div
-                          key={idx}
-                          className={`absolute inset-0 border-4 border-black rounded-4xl p-1 flex flex-col justify-center shadow-[2px_2px_0_0_rgba(0,0,0,1)]
+                      usedCardsDetails
+                        .filter((cardDetails) => cardDetails?.action === PLAY_CARD)
+                        .slice(0, 3)
+                        .map((cardDetails, idx) => (
+                          <div
+                            key={idx}
+                            className={`absolute inset-0 border-4 border-black rounded-4xl p-1 flex flex-col justify-center shadow-[2px_2px_0_0_rgba(0,0,0,1)]
                             animate-in slide-in-from-top-4`}
-                          style={{
-                            transform: `rotate(${idx * -6}deg) translate(${idx * -10}px, ${idx * -4}px)`,
-                            zIndex: 10 - idx,
-                          }}
-                        >
-                          <img
-                            src={allCardImages?.[cardDetails?.cardName]?.url}
-                            alt={cardDetails?.cardName}
-                            className="w-60 h-68"
-                            loading="eager"
-                            fetchPriority="high"
-                            style={{ visibility: 'hidden' }}
-                            onLoad={(event) => (event.currentTarget.style.visibility = 'visible')}
-                          />
-                        </div>
-                      ))
+                            style={{
+                              transform: `rotate(${idx * -6}deg) translate(${idx * -10}px, ${idx * -4}px)`,
+                              zIndex: 10 - idx,
+                            }}
+                          >
+                            <img
+                              src={allCardImages?.[cardDetails?.cardName]?.url}
+                              alt={cardDetails?.cardName}
+                              className="w-60 h-68"
+                              loading="eager"
+                              fetchPriority="high"
+                              style={{ visibility: 'hidden' }}
+                              onLoad={(event) => (event.currentTarget.style.visibility = 'visible')}
+                            />
+                          </div>
+                        ))
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Inbox className="text-black/10" size={48} />
@@ -664,7 +697,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                       </h3>
                       <div className="flex items-center gap-2 mt-0.5">
                         <div className="bg-black text-white inline-block px-1.5 py-0.5 rounded text-[10px] font-black uppercase">
-                          {player.cardsCount} Cards
+                          {player.name === playerName ? playerCards?.length : player.cardsCount}{' '}
+                          Cards
                         </div>
                       </div>
                     </div>
@@ -732,6 +766,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               </div>
             </section>
           </div>
+          {/* Future Cards Modal */}
           {futureCard && (
             <div className="fixed inset-0 z-500 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
               <form onSubmit={handleAlterFuture}>
@@ -748,8 +783,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     </div>
                     <h2 className="text-2xl md:text-3xl font-black italic uppercase text-black tracking-tighter leading-none mb-2">
                       {futureCard === CARD_TYPES.ALTER_THE_FUTURE
-                        ? 'ALTER THE FUTURE'
-                        : 'SEE THE FUTURE'}
+                        ? 'Alter the Future'
+                        : 'See the Future'}
                     </h2>
                     <p className="font-black text-zinc-400 uppercase tracking-widest text-xs max-w-xl mx-auto">
                       {futureCard === CARD_TYPES.ALTER_THE_FUTURE
@@ -833,6 +868,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               </form>
             </div>
           )}
+          {/* Explosion Modal */}
           {explosionCardIdx !== null && (
             <div className="fixed inset-0 z-600 bg-black/90 flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in">
               <div
@@ -872,7 +908,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                           />
                         </div>
                         <p className="text-xs font-black uppercase text-black/60 tracking-widest">
-                          Deck Size: {Math.max((cardsDeck?.length || 0) - 1, 0)}
+                          Deck Size: {cardsDeck?.length || 0}
                         </p>
                       </div>
                       <button
@@ -897,6 +933,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               </div>
             </div>
           )}
+          {/* Winner Announcement Modal */}
           {winnerName && (
             <div className="fixed inset-0 z-700 bg-black/95 flex items-center justify-center p-6 backdrop-blur-xl animate-in fade-in duration-500">
               <div
