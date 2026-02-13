@@ -26,7 +26,7 @@ export const subscribeToGameLobby = (lobbyId, callback) => {
   return () => off(lobbyRef, 'value', listener);
 };
 
-export const createLobby = async () => {
+export const createLobbyService = async () => {
   const lobbiesRef = ref(db, 'lobby');
   const newLobbyRef = push(lobbiesRef);
 
@@ -43,7 +43,7 @@ export const createLobby = async () => {
   return [lobbyId, displayCode];
 };
 
-export const getLobbyId = async (displayCode) => {
+export const getLobbyIdService = async (displayCode) => {
   const codeRef = ref(db, `lobbyCodes/${displayCode.trim()}`);
   const snapshot = await get(codeRef);
 
@@ -55,7 +55,7 @@ export const getLobbyId = async (displayCode) => {
   return lobbyId;
 };
 
-export const updateLobbyStatus = async (lobbyId, status) => {
+export const updateLobbyStatusService = async (lobbyId, status) => {
   const lobbyRef = ref(db, `lobby/${lobbyId}`);
   await update(lobbyRef, { status });
 };

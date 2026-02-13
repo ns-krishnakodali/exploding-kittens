@@ -56,8 +56,13 @@ export const SELECT_PLAYER_PREFIX = 'Select a player to';
 export const DRAW_CARD = 'Draw-Card';
 export const PLAY_CARD = 'Play-Card';
 
+export const FAVOR_REQUEST = 'Favor-Request';
+export const THREE_CARDS_REQUEST = 'Three-Cards-Request';
+export const TWO_CARDS_REQUEST = 'Two-Cards-Request';
+
 export const ERROR_MESSAGE = 'Something went wrong, try again';
 export const UNKOWN_ERROR = 'An unknown error occurred';
+export const TRANSFER_ERROR = 'Oops! That card cannot be transferred.';
 export const CHOOSE_ANOTHER_PLAYER = 'You must choose another player';
 
 export const WINNING_MESSAGE = "The kittens exploded. Your ego didn't, Champion!";

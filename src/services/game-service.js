@@ -1,4 +1,4 @@
-import { get, ref, runTransaction, update } from 'firebase/database';
+import { get, ref, remove, runTransaction, update } from 'firebase/database';
 
 import { CARD_TYPES } from '../constants';
 import { db } from '../firebase';
@@ -10,11 +10,8 @@ export const startGameService = async (lobbyId, hostName) => {
   }
 
   try {
-    const cardsRef = ref(db, 'cards');
-    const playersRef = ref(db, `lobby/${lobbyId}/players`);
-
-    const cardsSnapshot = await get(cardsRef);
-    const playersSnapshot = await get(playersRef);
+    const cardsSnapshot = await get(ref(db, 'cards'));
+    const playersSnapshot = await get(ref(db, `lobby/${lobbyId}/players`));
     if (!cardsSnapshot.exists() || !playersSnapshot.exists()) return false;
 
     const cardsInfo = cardsSnapshot.val();
@@ -52,7 +49,7 @@ export const startGameService = async (lobbyId, hostName) => {
       cardsDeck.push(defuseCards[0]);
     }
 
-    cardsDeck = shuffleDeck(cardsDeck);
+    cardsDeck = shuffleDeckService(cardsDeck);
 
     await update(ref(db, `lobby/${lobbyId}`), {
       players: playersInfo,
@@ -71,9 +68,7 @@ export const startGameService = async (lobbyId, hostName) => {
 
 export const getAllCardsImages = async () => {
   try {
-    const cardImagesRef = ref(db, 'cardImages');
-    const snapshot = await get(cardImagesRef);
-
+    const snapshot = await get(ref(db, 'cardImages'));
     if (!snapshot.exists()) return {};
 
     return snapshot.val();
@@ -83,7 +78,7 @@ export const getAllCardsImages = async () => {
   }
 };
 
-export const updatePostDrawState = async (
+export const updatePostDrawService = async (
   lobbyId,
   playerName,
   nextPlayerName,
@@ -117,7 +112,7 @@ export const updatePostDrawState = async (
   }
 };
 
-export const updatePostPlayState = async (
+export const updatePostPlayService = async (
   lobbyId,
   playerName,
   nextPlayerName,
@@ -151,7 +146,7 @@ export const updatePostPlayState = async (
 };
 
 // Updates cards deck and resets the status message.
-export const updateCardsDeck = async (lobbyId, cardsDeck) => {
+export const updateCardsDeckService = async (lobbyId, cardsDeck) => {
   try {
     await update(ref(db, `lobby/${lobbyId}`), {
       cardsDeck,
@@ -164,8 +159,33 @@ export const updateCardsDeck = async (lobbyId, cardsDeck) => {
   }
 };
 
+// Sets the current defined notify request for the lobby.
+export const setNotifyRequestService = async (lobbyId, notifyRequest, statusMessage = '') => {
+  try {
+    const updates = {
+      [`lobby/${lobbyId}/notifyRequest`]: notifyRequest,
+    };
+    if (statusMessage) updates[`lobby/${lobbyId}/statusMessage`] = statusMessage;
+
+    await update(ref(db), updates);
+    return true;
+  } catch (error) {
+    console.error(`Error setting notify request for lobby ${lobbyId}:`, error);
+    return false;
+  }
+};
+
+// Removes a notify request from the lobby
+export const removeNotifyRequestService = async (lobbyId) => {
+  try {
+    await remove(ref(db, `lobby/${lobbyId}/notifyRequest`));
+  } catch (error) {
+    console.error(`Error removing notify request for lobby ${lobbyId}:`, error);
+  }
+};
+
 // Sets the game winner for the lobby
-export const setGameWinner = async (lobbyId, winnerName) => {
+export const setGameWinnerService = async (lobbyId, winnerName) => {
   try {
     await update(ref(db, `lobby/${lobbyId}`), {
       winnerName,
@@ -177,7 +197,8 @@ export const setGameWinner = async (lobbyId, winnerName) => {
   }
 };
 
-export const shuffleDeck = (deck) => {
+// Shuffles the deck randomly and returns it.
+export const shuffleDeckService = (deck) => {
   const shuffled = [...deck];
   for (let idx = shuffled.length - 1; idx > 0; idx--) {
     const sIdx = Math.floor(Math.random() * (idx + 1));

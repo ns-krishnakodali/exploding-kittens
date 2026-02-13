@@ -4,11 +4,11 @@ import { Loading, Toast } from './components';
 import { ERROR_MESSAGE, GAME_STATE, LOBBY_STATUS, UNKOWN_ERROR } from './constants';
 import { GameArenaPage, LandingPage, LobbyPage } from './pages';
 import {
-  addPlayerToLobby,
-  createLobby,
-  getLobbyId,
+  addPlayerToLobbyService,
+  createLobbyService,
+  getLobbyIdService,
   startGameService,
-  updateLobbyStatus,
+  updateLobbyStatusService,
 } from './services';
 
 const App = () => {
@@ -22,8 +22,8 @@ const App = () => {
   const handleCreateGame = async (newPlayerName, pin) => {
     setLoading(true);
 
-    const [newLobbyId, newGameId] = await createLobby();
-    const gameStateInfo = await addPlayerToLobby(newLobbyId, newPlayerName, pin, true);
+    const [newLobbyId, newGameId] = await createLobbyService();
+    const gameStateInfo = await addPlayerToLobbyService(newLobbyId, newPlayerName, pin, true);
 
     setLoading(false);
     setLobbyId(newLobbyId);
@@ -36,8 +36,8 @@ const App = () => {
     setLoading(true);
 
     try {
-      const existingLobbyId = await getLobbyId(displayCode);
-      const gameStateInfo = await addPlayerToLobby(existingLobbyId, newPlayerName, pin);
+      const existingLobbyId = await getLobbyIdService(displayCode);
+      const gameStateInfo = await addPlayerToLobbyService(existingLobbyId, newPlayerName, pin);
 
       if (gameStateInfo === GAME_STATE.LANDING) {
         setToast({ message: ERROR_MESSAGE, type: 'error' });
@@ -60,11 +60,11 @@ const App = () => {
   const handleStartGame = () => {
     const status = startGameService(lobbyId, playerName);
     if (status) {
-      updateLobbyStatus(lobbyId, LOBBY_STATUS.IN_GAME);
+      updateLobbyStatusService(lobbyId, LOBBY_STATUS.IN_GAME);
       setGameState(GAME_STATE.GAME);
     } else {
       setToast({ message: 'Unable to start the game', type: 'error' });
-      updateLobbyStatus(lobbyId, LOBBY_STATUS.WAITING);
+      updateLobbyStatusService(lobbyId, LOBBY_STATUS.WAITING);
       setGameState(GAME_STATE.LOBBY);
     }
   };

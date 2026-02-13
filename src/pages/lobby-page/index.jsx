@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, Copy, Crown, LogOut, Play, Sword, Zap } from 'lucide-react';
 
 import {
-  removePlayerFromLobby,
+  removePlayerFromLobbyService,
   subscribeToGameStatus,
   subscribeToLobbyPlayers,
 } from '../../services';
@@ -30,7 +30,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
   const [copied, setCopied] = useState(false);
 
   const handleLeaveLobby = async () => {
-    const status = await removePlayerFromLobby(lobbyId, playerName);
+    const status = await removePlayerFromLobbyService(lobbyId, playerName);
     if (status) onLeave();
   };
 

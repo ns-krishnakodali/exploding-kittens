@@ -1,6 +1,6 @@
 import { child, get, off, onValue, ref, remove, set, update } from 'firebase/database';
 
-import { GAME_STATE, LOBBY_STATUS } from '../constants';
+import { CARD_TYPES, GAME_STATE, LOBBY_STATUS, TRANSFER_ERROR } from '../constants';
 import { db } from '../firebase';
 
 export const subscribeToLobbyPlayers = (lobbyId, callback) => {
@@ -14,7 +14,7 @@ export const subscribeToLobbyPlayers = (lobbyId, callback) => {
   return () => off(playersRef);
 };
 
-export const getPlayerCards = (lobbyDetails, playerName, allCardImages) => {
+export const getPlayerCardsService = (lobbyDetails, playerName, allCardImages) => {
   try {
     const playerCardDetails = (lobbyDetails?.players?.[playerName]?.deck || [])
       .filter((cardName) => allCardImages[cardName])
@@ -30,7 +30,7 @@ export const getPlayerCards = (lobbyDetails, playerName, allCardImages) => {
   }
 };
 
-export const getPlayerDetails = (lobbyDetails) => {
+export const getPlayerDetailsService = (lobbyDetails) => {
   const playerDetails = Object.entries(lobbyDetails?.players || {})
     .map(([name, data]) => ({ name, ...data }))
     .sort((p1, p2) => {
@@ -47,7 +47,7 @@ export const getPlayerDetails = (lobbyDetails) => {
   return playerDetails || [];
 };
 
-export const addPlayerToLobby = async (lobbyId, playerName, pin, isHost = false) => {
+export const addPlayerToLobbyService = async (lobbyId, playerName, pin, isHost = false) => {
   const lobbyRef = ref(db, `lobby/${lobbyId}`);
   const lobbySnapshot = await get(lobbyRef);
 
@@ -82,10 +82,46 @@ export const addPlayerToLobby = async (lobbyId, playerName, pin, isHost = false)
   return GAME_STATE.LANDING;
 };
 
-export const updatePlayerCards = async (lobbyId, playerName, updatedCards) => {
+// Transfers specified card from Player 1 to Player 2.
+export const transferPlayerCardsService = async (
+  lobbyId,
+  playerName1,
+  playerName2,
+  cardName,
+  statusMessage = ''
+) => {
   try {
-    const playerRef = ref(db, `lobby/${lobbyId}/players/${playerName}/deck`);
-    await set(playerRef, updatedCards);
+    const updates = {};
+    if (cardName) {
+      const [player1Snap, player2Snap] = await Promise.all([
+        get(ref(db, `lobby/${lobbyId}/players/${playerName1}/deck`)),
+        get(ref(db, `lobby/${lobbyId}/players/${playerName2}/deck`)),
+      ]);
+
+      const player1Deck = player1Snap.val() || [];
+      const player2Deck = player2Snap.val() || [];
+
+      const cardIdx = player1Deck.findIndex((pCardName) => pCardName === cardName);
+      if (cardIdx === -1) {
+        updates[`lobby/${lobbyId}/statusMessage`] = TRANSFER_ERROR;
+        await update(ref(db), updates);
+        return true;
+      }
+
+      const [removedCard] = player1Deck.splice(cardIdx, 1);
+      removedCard.startsWith(CARD_TYPES.DEFUSE)
+        ? player2Deck.unshift(removedCard)
+        : player2Deck.push(removedCard);
+
+      updates[`lobby/${lobbyId}/players/${playerName1}/deck`] = player1Deck;
+      updates[`lobby/${lobbyId}/players/${playerName2}/deck`] = player2Deck;
+
+      if (statusMessage) updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
+    } else {
+      updates[`lobby/${lobbyId}/statusMessage`] = TRANSFER_ERROR;
+    }
+
+    await update(ref(db), updates);
     return true;
   } catch (error) {
     console.error('Error updating player cards:', error);
@@ -94,7 +130,7 @@ export const updatePlayerCards = async (lobbyId, playerName, updatedCards) => {
 };
 
 // Removes a player from the lobby and marks the lobby as CANCELLED if no players remain
-export const removePlayerFromLobby = async (lobbyId, playerName) => {
+export const removePlayerFromLobbyService = async (lobbyId, playerName) => {
   try {
     const playerRef = ref(db, `lobby/${lobbyId}/players/${playerName}`);
     await remove(playerRef);
@@ -115,7 +151,7 @@ export const removePlayerFromLobby = async (lobbyId, playerName) => {
   }
 };
 
-export const makePlayerInactive = async (lobbyId, playerName) => {
+export const makePlayerInactiveService = async (lobbyId, playerName) => {
   try {
     const playerRef = ref(db, `lobby/${lobbyId}/players/${playerName}`);
     await set(playerRef, { inGame: false }, { merge: true });
