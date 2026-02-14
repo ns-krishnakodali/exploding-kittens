@@ -133,17 +133,34 @@ export const transferPlayerCardsService = async (
 export const removePlayerFromLobbyService = async (lobbyId, playerName) => {
   try {
     const playerRef = ref(db, `lobby/${lobbyId}/players/${playerName}`);
+    const playerSnapshot = await get(playerRef);
+    const wasHost = playerSnapshot.exists() && playerSnapshot.val().host;
+
     await remove(playerRef);
 
     const lobbyRef = ref(db, `lobby/${lobbyId}`);
     const playersSnapshot = await get(child(lobbyRef, 'players'));
     const players = playersSnapshot.exists() ? playersSnapshot.val() : null;
+
     if (!players || Object.keys(players).length === 0) {
       await update(lobbyRef, {
         status: LOBBY_STATUS.CANCELLED,
       });
+      return true;
     }
 
+    if (wasHost) {
+      const playersArray = Object.entries(players).map(([name, data]) => ({
+        name,
+        ...data,
+      }));
+
+      playersArray.sort((a, b) => a.joinedAt - b.joinedAt);
+      const newHost = playersArray[0];
+      const newHostRef = ref(db, `lobby/${lobbyId}/players/${newHost.name}/host`);
+
+      await set(newHostRef, true);
+    }
     return true;
   } catch (err) {
     console.error('An error occurred when removing player', err);

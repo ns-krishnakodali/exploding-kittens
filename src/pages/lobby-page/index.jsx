@@ -75,7 +75,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
     });
 
   return (
-    <div className="px-2 py-8 md:px-0 max-w-5xl mx-auto space-y-12 animate-in slide-in-from-bottom-12 duration-500">
+    <div className="px-2 py-8 md:px-6 max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-12 duration-500">
       <div className="flex flex-col md:flex-row gap-8 mt-2">
         <div className="grow space-y-6">
           <div className="bg-white border-4 border-black rounded-[3rem] p-8 shadow-[8px_8px_0_0_#000] relative">
@@ -83,12 +83,12 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
               className="absolute -top-6 -left-6 bg-yellow-400 border-4 border-black px-4 py-2 rounded-xl font-black italic rotate-[-5deg]
               shadow-[4px_4px_0_0_#000]"
             >
-              FELINES LOBBY
+              Felines Lobby
             </div>
             <div className="flex flex-col md:flex-row items-center justify-between mb-8 pt-4 gap-4">
               <div>
                 <h1 className="text-4xl font-black uppercase italic tracking-tighter">
-                  WAITING ROOM
+                  Waiting Room
                 </h1>
                 <p className="text-zinc-500 font-bold uppercase text-xs tracking-[0.2em] mt-1">
                   Status: Collecting Felines
@@ -97,13 +97,13 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
               <div className="text-center md:text-right">
                 <p className="text-sm font-black uppercase text-zinc-400 mb-1 mr-1">Game Code</p>
                 <button
-                  className="bg-black text-white px-6 py-3 rounded-2xl font-black text-3xl tracking-widest flex items-center gap-3 min-w-[8ch]"
+                  className="bg-black text-white px-6 py-3 rounded-2xl font-black text-3xl uppercase tracking-widest flex items-center gap-3 min-w-[8ch]"
                   type="button"
                   onClick={copyCode}
                 >
                   {copied ? (
                     <>
-                      COPIED
+                      Copied
                       <Check size={20} className="text-green-400 transition-colors" />
                     </>
                   ) : (
@@ -168,9 +168,9 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
                   onClick={onStart}
                   disabled={Object.keys(lobbyPlayers).length < 2}
                   className="w-full bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed
-                  text-white font-black italic py-5 rounded-2xl border-2 border-white/20 flex items-center justify-center gap-3 transition-all"
+                  text-white font-black italic uppercase py-5 rounded-2xl border-2 border-white/20 flex items-center justify-center gap-3 transition-all"
                 >
-                  <Play size={24} fill="currentColor" /> START MATCH
+                  <Play size={24} fill="currentColor" /> Start Match
                 </button>
               ) : (
                 <div className="w-full bg-zinc-900 border-2 border-zinc-800 p-6 rounded-2xl text-center">
@@ -183,10 +183,10 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
 
               <button
                 onClick={handleLeaveLobby}
-                className="w-full border-2 border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-black italic py-4 rounded-2xl transition-all
+                className="w-full border-2 border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-black italic uppercase py-4 rounded-2xl transition-all
                 flex items-center justify-center gap-2"
               >
-                <LogOut size={18} /> LEAVE LOBBY
+                <LogOut size={18} /> Leave Lobby
               </button>
             </div>
           </div>
