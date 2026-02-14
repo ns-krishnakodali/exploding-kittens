@@ -23,25 +23,26 @@ import {
   Zap,
 } from 'lucide-react';
 
+import { Loading, Toast } from '../../components';
 import {
   ATTACK_PREFIX,
   CARD_TYPES,
   CAT_CARD_NAMES,
   CHOOSE_ANOTHER_PLAYER,
   DRAW_CARD,
-  ERROR_MESSAGE,
+  GENERIC_ERROR,
   EXPLOSION_PREFIX,
   FAVOR_REQUEST,
   PLAY_CARD,
   SELECT_PLAYER_PREFIX,
   THREE_CARDS_REQUEST,
   TWO_CARDS_REQUEST,
-  WILD_CAT_CARD,
   WINNING_MESSAGE,
+  NOPE_ERROR,
 } from '../../constants';
-import { Loading, Toast } from '../../components';
 import {
   getAllCardsImages,
+  getCatCardsCountService,
   getPlayerCardsService,
   getPlayerDetailsService,
   removeNotifyRequestService,
@@ -62,7 +63,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   const [isUserTurn, setIsUserTurn] = useState(true);
   const [currentPlayerName, setCurrentPlayerName] = useState(null);
   const [attackStack, setAttackStack] = useState(0);
-  const [usedCardsDetails, setUsedCardsDetails] = useState([]); // [{playerName, cardName, action}]
+  const [usedCardsDetails, setUsedCardsDetails] = useState([]); // [{playerName, selectedPlayerName, cardName, action}]
   const [cardsDeck, setCardsDeck] = useState([]); // [cardName]
   const [playerCards, setPlayerCards] = useState([]); // [{name, url}]
   const [playersDetails, setPlayersDetails] = useState([]); // [{name, cardsCount, inGame}]
@@ -97,7 +98,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       case THREE_CARDS_REQUEST: {
         if (!notifyRequest?.cardType) {
           console.error('Card type is missing');
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
           return;
         }
 
@@ -114,7 +115,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
         if (!status) {
           console.error('An issue occurred when resolving three cards request');
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
         }
 
         await removeNotifyRequestService(lobbyId);
@@ -279,7 +280,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   // Handles drawing a card, optionally from the bottom of the deck.
   const handleDrawCard = async (
     updatedPlayerCards = [],
-    updatedUsedCardDetails = [],
+    updatedUsedCardsDetails = [],
     drawFromBottom = false
   ) => {
     if (!isUserTurn || !cardsDeck?.length) return;
@@ -306,8 +307,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         : [...existingCardNames, drawnCardName],
       true,
       updatedDeck,
-      updatedUsedCardDetails.length > 0
-        ? updatedUsedCardDetails
+      updatedUsedCardsDetails.length > 0
+        ? updatedUsedCardsDetails
         : [{ playerName, cardName: '', action: DRAW_CARD }, ...usedCardsDetails]
     );
 
@@ -320,7 +321,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         message: `You picked ${cardType?.replace('-', ' ') || 'CAT'} card`,
       });
     } else {
-      setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setToast({ message: GENERIC_ERROR, type: 'error' });
     }
   };
 
@@ -349,7 +350,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           setFutureCard(CARD_TYPES.ALTER_THE_FUTURE);
         } else {
           console.error(`An issue occurred when ${cardName}`);
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
         }
         break;
       }
@@ -367,14 +368,14 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
         if (!status) {
           console.error(`An issue occurred when ${cardName}`);
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
         }
         break;
       }
       case CARD_TYPES.CAT_CARD: {
         if (!CAT_CARD_NAMES.includes(cardName)) {
           console.error(`Invalid card name: ${cardName}`);
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
           return;
         }
 
@@ -382,18 +383,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           ? usedCardsDetails
           : [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails];
 
-        let cardsCount = 0;
-        for (const usedCardDetail of updatedUsedCardsDetails) {
-          if (usedCardDetail?.playerName !== playerName || usedCardDetail?.action === DRAW_CARD)
-            break;
-          if (
-            usedCardDetail?.cardName !== cardName &&
-            usedCardDetail?.cardName !== WILD_CAT_CARD &&
-            cardName !== WILD_CAT_CARD
-          )
-            break;
-          cardsCount++;
-        }
+        const cardsCount = getCatCardsCountService(updatedUsedCardsDetails, playerName, cardName);
 
         if (cardsCount >= 2 && !selectedPlayerName) {
           setPlayerCards(updatedPlayerCards);
@@ -420,7 +410,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
           if (!status) {
             console.error(`An issue occurred when playing ${cardName}`);
-            setToast({ message: ERROR_MESSAGE, type: 'error' });
+            setToast({ message: GENERIC_ERROR, type: 'error' });
             return;
           }
 
@@ -446,7 +436,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         break;
       }
       case CARD_TYPES.DRAW_FROM_THE_BOTTOM: {
-        const updatedUsedCardDetails = [
+        const updatedUsedCardsDetails = [
           { playerName, cardName, action: PLAY_CARD },
           ...usedCardsDetails,
         ];
@@ -455,16 +445,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           playerName,
           null,
           updatedPlayerCards?.map((card) => card?.name) || [],
-          updatedUsedCardDetails,
+          updatedUsedCardsDetails,
           `${playerName} Drew From The Bottom!`
         );
 
         if (!status) {
           console.error(`An issue occurred when ${cardName}`);
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
           return;
         }
-        await handleDrawCard(updatedPlayerCards, updatedUsedCardDetails, true);
+        await handleDrawCard(updatedPlayerCards, updatedUsedCardsDetails, true);
         break;
       }
       case CARD_TYPES.FAVOR: {
@@ -478,13 +468,13 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 (card) => card?.name
               ) || []),
             ],
-            [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
+            [{ playerName, selectedPlayerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
             `${playerName} demanded a Favor from ${selectedPlayerName}!`
           );
 
           if (!status) {
             console.error(`An issue occurred when ${cardName}`);
-            setToast({ message: ERROR_MESSAGE, type: 'error' });
+            setToast({ message: GENERIC_ERROR, type: 'error' });
           }
           setPlayerAction(null);
 
@@ -502,6 +492,35 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         break;
       }
       case CARD_TYPES.NOPE: {
+        if (
+          (usedCardsDetails?.length ?? 0) === 0 ||
+          (usedCardsDetails[0]?.action === PLAY_CARD &&
+            [
+              CARD_TYPES.ALTER_THE_FUTURE,
+              CARD_TYPES.DRAW_FROM_THE_BOTTOM,
+              CARD_TYPES.SEE_THE_FUTURE,
+            ].includes(usedCardsDetails[0]?.cardName))
+        ) {
+          setToast({ message: NOPE_ERROR, type: 'error' });
+          return;
+        }
+
+        if (usedCardsDetails[0]?.action === DRAW_CARD) {
+          const status = await updatePostPlayService(
+            lobbyId,
+            playerName,
+            null,
+            updatedPlayerCards?.map((card) => card?.name) || [],
+            [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
+            `${playerName} played Nope for no reason.`
+          );
+
+          if (!status) {
+            console.error('An issue occurred when playing nope');
+            setToast({ message: GENERIC_ERROR, type: 'error' });
+          }
+          return;
+        }
         break;
       }
       case CARD_TYPES.SEE_THE_FUTURE: {
@@ -518,7 +537,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           setFutureCard(CARD_TYPES.SEE_THE_FUTURE);
         } else {
           console.error(`An issue occurred when ${cardName}`);
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
         }
         break;
       }
@@ -538,7 +557,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
         if (!status) {
           console.error('An issue occurred when shuffling cards');
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
         }
         break;
       }
@@ -556,7 +575,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
         if (!status) {
           console.error(`An issue occurred when ${cardName}`);
-          setToast({ message: ERROR_MESSAGE, type: 'error' });
+          setToast({ message: GENERIC_ERROR, type: 'error' });
         }
         break;
       }
@@ -571,14 +590,14 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 (card) => card?.name
               ) || []),
             ],
-            [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
+            [{ playerName, selectedPlayerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
             `${playerName} launched a Targetted Attack at ${selectedPlayerName}, Good luck!`,
             attackStack + 2
           );
 
           if (!status) {
             console.error(`An issue occurred when ${cardName}`);
-            setToast({ message: ERROR_MESSAGE, type: 'error' });
+            setToast({ message: GENERIC_ERROR, type: 'error' });
           }
           setPlayerAction(null);
         } else {
@@ -604,7 +623,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
       if (!status) {
         console.error('An issue occurred when resolving three cards request');
-        setToast({ message: ERROR_MESSAGE, type: 'error' });
+        setToast({ message: GENERIC_ERROR, type: 'error' });
       }
 
       await removeNotifyRequestService(lobbyId);
@@ -641,7 +660,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const status = await updateCardsDeckService(lobbyId, updatedCardsDeck);
     if (!status) {
       console.error('An issue occurred when altering cards');
-      setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setToast({ message: GENERIC_ERROR, type: 'error' });
       return;
     }
     setFutureCard(null);
@@ -664,7 +683,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const cardType = event.target.value;
     if (!cardType) {
       console.error('Nope card missing or invalid notify request');
-      setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setToast({ message: GENERIC_ERROR, type: 'error' });
       return;
     }
 
@@ -682,7 +701,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const nopeCardIdx = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.DEFUSE));
     if (nopeCardIdx === -1 || notifyRequest === null) {
       console.error('Nope card missing or invalid notify request');
-      setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setToast({ message: GENERIC_ERROR, type: 'error' });
       return;
     }
     handlePlayCard(playerCards[nopeCardIdx]?.name, nopeCardIdx);
@@ -694,15 +713,15 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
     const status = await transferPlayerCardsService(
       lobbyId,
-      notifyRequest.to,
-      notifyRequest.from,
+      notifyRequest?.to,
+      notifyRequest?.from,
       notifyRequest.shuffledCardNames?.[cardIdx],
       `${notifyRequest?.from} stealed Random Card from ${notifyRequest?.to}`
     );
 
     if (!status) {
       console.error('An issue occurred when processing two cards request');
-      setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setToast({ message: GENERIC_ERROR, type: 'error' });
     }
 
     handleCardsModalClosure();
@@ -723,7 +742,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     );
     if (defuseCardIdx === -1 || explosionCardIdx === null) {
       console.error('Defuse card missing or invalid explosion card index');
-      setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setToast({ message: GENERIC_ERROR, type: 'error' });
       setExplosionCardIdx(null);
       return;
     }
@@ -767,7 +786,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
     if (!status) {
       console.error(`An issue occurred when ${cardName}`);
-      setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setToast({ message: GENERIC_ERROR, type: 'error' });
     }
     setExplosionCardIdx(null);
   };
@@ -797,7 +816,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     setExplosionCardIdx(null);
 
     if (!status) {
-      setToast({ message: ERROR_MESSAGE, type: 'error' });
+      setToast({ message: GENERIC_ERROR, type: 'error' });
     } else {
       const inGameNames =
         updatedPlayersDetails.filter((player) => player?.inGame)?.map((player) => player?.name) ||
@@ -932,7 +951,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               </div>
             </section>
             <section className="border-t-8 border-black p-6">
-              <div className="max-w-8xl mx-auto px-4 mb-4 flex items-center gap-3 border-b-2 border-zinc-800 pb-4">
+              <div className="max-w-8xl mx-auto px-4 mb-4 flex items-center gap-2 border-b-2 border-zinc-800 pb-4">
                 <History className="text-yellow-400" size={18} />
                 <h3 className="text-zinc-900 font-black italic uppercase text-lg tracking-tight">
                   Feline Surveillance List
@@ -941,13 +960,13 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               <div className="w-full flex justify-center py-4 px-6 relative z-10">
                 <div
                   className={`min-h-16 max-w-6xl w-full flex items-center justify-center gap-4 px-8 py-3 rounded-2xl border-4 border-black transition-all
-                duration-300 transform shadow-[6px_6px_0_0_#000] ${
-                  statusMessage
-                    ? statusMessage.type === 'error'
-                      ? 'bg-red-600 text-white scale-105'
-                      : 'bg-white text-black scale-100'
-                    : 'bg-black/5 border-dashed border-black/10 scale-95 opacity-50'
-                }`}
+                  duration-300 transform shadow-[6px_6px_0_0_#000] ${
+                    statusMessage
+                      ? statusMessage.type === 'error'
+                        ? 'bg-red-600 text-white scale-105'
+                        : 'bg-white text-black scale-100'
+                      : 'bg-black/5 border-dashed border-black/10 scale-95 opacity-50'
+                  }`}
                 >
                   {statusMessage ? (
                     <>
@@ -1170,7 +1189,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                       </button>
                     )}
                     <button
-                      className="px-8 py-4 border-[6px] border-black rounded-2xl font-black italic uppercase text-xl hover:bg-zinc-200 shadow-[6px_6px_0_0_#000]"
+                      className="px-8 py-4 border-[6px] border-black rounded-2xl font-black italic uppercase text-xl hover:bg-zinc-300 shadow-[6px_6px_0_0_#000]"
                       type="button"
                       onClick={() => setFutureCard(null)}
                     >
@@ -1188,7 +1207,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 className="max-w-xl w-full bg-white border-8 border-black p-8 md:p-12 rounded-[4rem] text-center space-y-8 shadow-[10px_10px_0_0_#000]
                 animate-in zoom-in-95"
               >
-                {countdown && (
+                {countdown && !renderSelectCard && (
                   <div
                     className="absolute top-6 right-8 bg-black text-white px-4 py-2 border-4 border-black shadow-[4px_4px_0_0_#ef4444] rounded-xl
                   flex items-center gap-2 transform rotate-2"
@@ -1314,7 +1333,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                   {Array.from(
                     { length: notifyRequest?.shuffledCardNames?.length ?? 0 },
-                    (_, i) => i + 1
+                    (_, aIdx) => aIdx
                   ).map((idx) => (
                     <button
                       key={idx}

@@ -1,6 +1,6 @@
 import { get, ref, remove, runTransaction, update } from 'firebase/database';
 
-import { CARD_TYPES } from '../constants';
+import { CARD_TYPES, CAT_CARD_NAMES, DRAW_CARD, WILD_CAT_CARD } from '../constants';
 import { db } from '../firebase';
 
 export const startGameService = async (lobbyId, hostName) => {
@@ -66,6 +66,8 @@ export const startGameService = async (lobbyId, hostName) => {
   }
 };
 
+// export const play
+
 export const getAllCardsImages = async () => {
   try {
     const snapshot = await get(ref(db, 'cardImages'));
@@ -76,6 +78,23 @@ export const getAllCardsImages = async () => {
     console.error('Error fetching card images:', error);
     return {};
   }
+};
+
+export const getCatCardsCountService = (usedCardsDetails, playerName, cardName) => {
+  let cardsCount = 0;
+  for (const usedCardDetail of usedCardsDetails) {
+    if (usedCardDetail?.playerName !== playerName || usedCardDetail?.action === DRAW_CARD) break;
+    if (!CAT_CARD_NAMES.includes(usedCardDetail?.cardName)) break;
+    if (
+      usedCardDetail?.cardName !== cardName &&
+      usedCardDetail?.cardName !== WILD_CAT_CARD &&
+      cardName !== WILD_CAT_CARD
+    )
+      break;
+    cardsCount++;
+  }
+
+  return cardsCount;
 };
 
 export const updatePostDrawService = async (
@@ -175,15 +194,6 @@ export const setNotifyRequestService = async (lobbyId, notifyRequest, statusMess
   }
 };
 
-// Removes a notify request from the lobby
-export const removeNotifyRequestService = async (lobbyId) => {
-  try {
-    await remove(ref(db, `lobby/${lobbyId}/notifyRequest`));
-  } catch (error) {
-    console.error(`Error removing notify request for lobby ${lobbyId}:`, error);
-  }
-};
-
 // Sets the game winner for the lobby
 export const setGameWinnerService = async (lobbyId, winnerName) => {
   try {
@@ -194,6 +204,15 @@ export const setGameWinnerService = async (lobbyId, winnerName) => {
   } catch (error) {
     console.error('Error setting game winner:', error);
     return false;
+  }
+};
+
+// Removes a notify request from the lobby
+export const removeNotifyRequestService = async (lobbyId) => {
+  try {
+    await remove(ref(db, `lobby/${lobbyId}/notifyRequest`));
+  } catch (error) {
+    console.error(`Error removing notify request for lobby ${lobbyId}:`, error);
   }
 };
 

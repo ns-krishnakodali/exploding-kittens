@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Loading, Toast } from './components';
-import { ERROR_MESSAGE, GAME_STATE, LOBBY_STATUS, UNKOWN_ERROR } from './constants';
+import { GENERIC_ERROR, GAME_STATE, LOBBY_STATUS, UNKOWN_ERROR } from './constants';
 import { GameArenaPage, LandingPage, LobbyPage } from './pages';
 import {
   addPlayerToLobbyService,
@@ -40,7 +40,7 @@ const App = () => {
       const gameStateInfo = await addPlayerToLobbyService(existingLobbyId, newPlayerName, pin);
 
       if (gameStateInfo === GAME_STATE.LANDING) {
-        setToast({ message: ERROR_MESSAGE, type: 'error' });
+        setToast({ message: GENERIC_ERROR, type: 'error' });
         setGameState(gameStateInfo);
         return;
       }

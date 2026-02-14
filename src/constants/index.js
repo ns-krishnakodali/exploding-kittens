@@ -60,9 +60,11 @@ export const FAVOR_REQUEST = 'Favor-Request';
 export const THREE_CARDS_REQUEST = 'Three-Cards-Request';
 export const TWO_CARDS_REQUEST = 'Two-Cards-Request';
 
-export const ERROR_MESSAGE = 'Something went wrong, try again';
+export const GENERIC_ERROR = 'Something went wrong, try again';
 export const UNKOWN_ERROR = 'An unknown error occurred';
 export const TRANSFER_ERROR = 'Oops! That card cannot be transferred.';
+export const NOPE_ERROR = "Nope! You can't use that card here.";
+
 export const CHOOSE_ANOTHER_PLAYER = 'You must choose another player';
 
 export const WINNING_MESSAGE = "The kittens exploded. Your ego didn't, Champion!";
