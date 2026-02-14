@@ -1,6 +1,6 @@
 import { get, ref, remove, runTransaction, update } from 'firebase/database';
 
-import { CARD_TYPES, CAT_CARD_NAMES, DRAW_CARD, WILD_CAT_CARD } from '../constants';
+import { CARD_TYPES, CAT_CARD_NAMES, DRAW_CARD, PLAY_CARD, WILD_CAT_CARD } from '../constants';
 import { db } from '../firebase';
 
 export const startGameService = async (lobbyId, hostName) => {
@@ -66,7 +66,55 @@ export const startGameService = async (lobbyId, hostName) => {
   }
 };
 
-// export const play
+export const processNopeActionService = async (
+  lobbyId,
+  playerName,
+  playerCards,
+  cardName,
+  usedCardsDetails,
+  nonNopeIdx
+) => {
+  const nonNopeCardDetails = usedCardsDetails[nonNopeIdx];
+  const nullifyNope = nonNopeIdx % 2 === 1;
+
+  const lobbyRef = ref(db, `lobby/${lobbyId}`);
+  await runTransaction(lobbyRef, (lobby) => {
+    lobby.players[playerName].deck = playerCards;
+    lobby.usedCardsDetails = [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails];
+
+    if (nonNopeCardDetails?.selectedPlayerName)
+      lobby.currentPlayer = nullifyNope
+        ? nonNopeCardDetails.selectedPlayerName
+        : nonNopeCardDetails.playerName;
+
+    const nonNopeCardName = nonNopeCardDetails?.cardName;
+    if (
+      nonNopeCardName.startsWith(CARD_TYPES.ATTACK) ||
+      nonNopeCardName.startsWith(CARD_TYPES.TARGETTED_ATTACK)
+    ) {
+      lobby.attackStack = Math.max(lobby.attackStack + (nullifyNope ? 2 : -2), 0);
+    } else if (nonNopeCardName.startsWith(CARD_TYPES.SKIP) && lobby.attackStack > 0) {
+      lobby.attackStack = lobby.attackStack + (nullifyNope ? -1 : 1);
+    } else if (
+      nonNopeCardName.startsWith(CARD_TYPES.SHUFFLE) &&
+      (lobby?.backupCardsDeck ?? []).length !== 0
+    ) {
+      const backupCardsDeck = lobby.backupCardsDeck;
+      lobby.backupCardsDeck = lobby.cardsDeck;
+      lobby.cardsDeck = backupCardsDeck;
+    } else if (
+      nonNopeCardName.startsWith(CARD_TYPES.SHUFFLE) ||
+      CAT_CARD_NAMES.some((cardName) => nonNopeCardName === cardName)
+    ) {
+      const notifyRequest = lobby?.notifyRequest ?? {};
+      if (Object.keys(notifyRequest) !== 0) lobby.notifyRequestBackup = notifyRequest;
+      lobby.notifyRequest = nullifyNope ? lobby.notifyRequestBackup : null;
+    }
+    lobby.statusMessage = `${playerName} played a Nope`;
+
+    return lobby;
+  });
+};
 
 export const getAllCardsImages = async () => {
   try {
@@ -97,7 +145,7 @@ export const getCatCardsCountService = (usedCardsDetails, playerName, cardName) 
   return cardsCount;
 };
 
-export const updatePostDrawService = async (
+export const updateDrawCardService = async (
   lobbyId,
   playerName,
   nextPlayerName,
@@ -116,6 +164,7 @@ export const updatePostDrawService = async (
     updates[`/lobby/${lobbyId}/players/${playerName}/inGame`] = inGameStatus;
     updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
     updates[`/lobby/${lobbyId}/usedCardsDetails`] = usedCardsDetails;
+    updates[`/lobby/${lobbyId}/notifyRequestBackup`] = null;
     if (statusMessage) updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
 
     await runTransaction(ref(db, `/lobby/${lobbyId}/attackStack`), (currentAttackStack) => {
@@ -131,7 +180,7 @@ export const updatePostDrawService = async (
   }
 };
 
-export const updatePostPlayService = async (
+export const updatePlayCardService = async (
   lobbyId,
   playerName,
   nextPlayerName,

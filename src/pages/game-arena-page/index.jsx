@@ -39,12 +39,16 @@ import {
   TWO_CARDS_REQUEST,
   WINNING_MESSAGE,
   NOPE_ERROR,
+  PLAYER_TOOK_CARD,
+  DREW_FROM_BOTTOM,
+  STEAL_CARD,
 } from '../../constants';
 import {
   getAllCardsImages,
   getCatCardsCountService,
   getPlayerCardsService,
   getPlayerDetailsService,
+  processNopeActionService,
   removeNotifyRequestService,
   setGameWinnerService,
   setNotifyRequestService,
@@ -52,8 +56,8 @@ import {
   subscribeToGameLobby,
   transferPlayerCardsService,
   updateCardsDeckService,
-  updatePostDrawService,
-  updatePostPlayService,
+  updateDrawCardService,
+  updatePlayCardService,
 } from '../../services';
 import { getRandomInt } from '../../utils';
 
@@ -105,11 +109,22 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         const cardIdx = playerCards.findIndex((card) =>
           card?.name?.startsWith(notifyRequest.cardType)
         );
+        const cardName = cardIdx !== -1 ? playerCards[cardIdx]?.name : '';
+
         const status = await transferPlayerCardsService(
           lobbyId,
           notifyRequest?.to,
           notifyRequest?.from,
-          cardIdx !== -1 ? playerCards[cardIdx]?.name : '',
+          cardName,
+          [
+            {
+              playerName: notifyRequest?.to,
+              selectedPlayerName: notifyRequest?.from,
+              cardName,
+              action: STEAL_CARD,
+            },
+            ...usedCardsDetails,
+          ],
           `${notifyRequest?.from} stealed ${notifyRequest.cardType} Card from ${notifyRequest?.to}`
         );
 
@@ -137,7 +152,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         break;
       }
     }
-  }, [lobbyId, playerName, playerCards, notifyRequest]);
+  }, [lobbyId, playerName, playerCards, notifyRequest, usedCardsDetails]);
 
   useEffect(() => {
     const fetchAllCardImages = async () => {
@@ -194,18 +209,25 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       setPlayersDetails(playerDetailsInfo);
 
       const lobbyStatusMessage = lobbyDetails?.statusMessage || '';
-      setStatusMessage(
-        lobbyStatusMessage
-          ? {
-              type:
-                lobbyStatusMessage.includes(EXPLOSION_PREFIX) ||
-                lobbyStatusMessage.includes(ATTACK_PREFIX)
-                  ? 'error'
-                  : 'info',
-              message: lobbyStatusMessage,
-            }
-          : null
-      );
+      if (
+        (lobbyStatusMessage.includes(PLAYER_TOOK_CARD) ||
+          lobbyStatusMessage.includes(DREW_FROM_BOTTOM)) &&
+        lobbyStatusMessage.includes(playerName)
+      )
+        setStatusMessage(null);
+      else
+        setStatusMessage(
+          lobbyStatusMessage
+            ? {
+                type:
+                  lobbyStatusMessage.includes(EXPLOSION_PREFIX) ||
+                  lobbyStatusMessage.includes(ATTACK_PREFIX)
+                    ? 'error'
+                    : 'info',
+                message: lobbyStatusMessage,
+              }
+            : null
+        );
 
       const notifyRequestInfo = lobbyDetails?.notifyRequest ?? null;
       setNotifyRequest(
@@ -267,7 +289,6 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
     for (let idx = 1; idx < playersDetails.length; idx++) {
       const playerIdx = (currPlayerIdx + idx) % playersDetails.length;
-
       if (playersDetails[playerIdx]?.inGame) {
         nextPlayerIdx = playerIdx;
         break;
@@ -298,7 +319,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const existingCardNames = playerCardsInfo?.map((card) => card?.name) ?? [];
 
     const nextPlayerIdx = getNextPlayerIdx();
-    const status = await updatePostDrawService(
+    const status = await updateDrawCardService(
       lobbyId,
       playerName,
       attackStack > 1 ? playerName : playersDetails[nextPlayerIdx]?.name,
@@ -309,7 +330,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       updatedDeck,
       updatedUsedCardsDetails.length > 0
         ? updatedUsedCardsDetails
-        : [{ playerName, cardName: '', action: DRAW_CARD }, ...usedCardsDetails]
+        : [{ playerName, cardName: '', action: DRAW_CARD }, ...usedCardsDetails],
+      !drawFromBottom && `${playerName} took a Card from the Deck!`
     );
 
     if (status) {
@@ -337,7 +359,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       CARD_TYPES.CAT_CARD
     ) {
       case CARD_TYPES.ALTER_THE_FUTURE: {
-        const status = await updatePostPlayService(
+        const status = await updatePlayCardService(
           lobbyId,
           playerName,
           null,
@@ -356,13 +378,21 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       }
       case CARD_TYPES.ATTACK: {
         const nextPlayerIdx = getNextPlayerIdx();
-        const status = await updatePostPlayService(
+        const status = await updatePlayCardService(
           lobbyId,
           playerName,
           playersDetails[nextPlayerIdx]?.name,
           updatedPlayerCards?.map((card) => card?.name) || [],
-          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
-          `${playerName} slapped down an Attack, Good luck!`,
+          [
+            {
+              playerName,
+              selectedPlayerName: playersDetails[nextPlayerIdx]?.name,
+              cardName,
+              action: PLAY_CARD,
+            },
+            ...usedCardsDetails,
+          ],
+          `${playerName} slapped down an Attack, Good Luck!`,
           attackStack + 2
         );
 
@@ -396,7 +426,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         }
 
         if (cardsCount === 1 || selectedPlayerName) {
-          const status = await updatePostPlayService(
+          const status = await updatePlayCardService(
             lobbyId,
             playerName,
             null,
@@ -440,13 +470,13 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           { playerName, cardName, action: PLAY_CARD },
           ...usedCardsDetails,
         ];
-        const status = await updatePostPlayService(
+        const status = await updatePlayCardService(
           lobbyId,
           playerName,
           null,
           updatedPlayerCards?.map((card) => card?.name) || [],
           updatedUsedCardsDetails,
-          `${playerName} Drew From The Bottom!`
+          `${playerName} Drew from the Bottom!`
         );
 
         if (!status) {
@@ -459,7 +489,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       }
       case CARD_TYPES.FAVOR: {
         if (playerAction && selectedPlayerName) {
-          const status = await updatePostPlayService(
+          const status = await updatePlayCardService(
             lobbyId,
             playerName,
             null,
@@ -492,21 +522,28 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         break;
       }
       case CARD_TYPES.NOPE: {
+        const recentUsedCardDetials = usedCardsDetails[0];
         if (
           (usedCardsDetails?.length ?? 0) === 0 ||
-          (usedCardsDetails[0]?.action === PLAY_CARD &&
+          (recentUsedCardDetials?.action === PLAY_CARD &&
             [
               CARD_TYPES.ALTER_THE_FUTURE,
               CARD_TYPES.DRAW_FROM_THE_BOTTOM,
               CARD_TYPES.SEE_THE_FUTURE,
-            ].includes(usedCardsDetails[0]?.cardName))
+            ].some((type) => recentUsedCardDetials?.cardName?.includes(type))) ||
+          (!recentUsedCardDetials.cardName?.startsWith(CARD_TYPES.NOPE) &&
+            recentUsedCardDetials?.playerName === playerName)
         ) {
           setToast({ message: NOPE_ERROR, type: 'error' });
           return;
         }
 
-        if (usedCardsDetails[0]?.action === DRAW_CARD) {
-          const status = await updatePostPlayService(
+        const nonNopeIdx =
+          usedCardsDetails.findIndex(
+            (cardDetails) => !cardDetails?.cardName.startsWith(CARD_TYPES.NOPE)
+          ) % 2;
+        if (usedCardsDetails[0]?.action !== PLAY_CARD || nonNopeIdx === -1) {
+          const status = await updatePlayCardService(
             lobbyId,
             playerName,
             null,
@@ -521,10 +558,19 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           }
           return;
         }
+
+        await processNopeActionService(
+          lobbyId,
+          playerName,
+          updatedPlayerCards?.map((card) => card?.name) || [],
+          cardName,
+          usedCardsDetails,
+          nonNopeIdx
+        );
         break;
       }
       case CARD_TYPES.SEE_THE_FUTURE: {
-        const status = await updatePostPlayService(
+        const status = await updatePlayCardService(
           lobbyId,
           playerName,
           null,
@@ -544,7 +590,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       case CARD_TYPES.SHUFFLE: {
         const shuffledCardsDeck = shuffleDeckService(cardsDeck);
 
-        const status = await updatePostPlayService(
+        const status = await updatePlayCardService(
           lobbyId,
           playerName,
           null,
@@ -563,12 +609,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       }
       case CARD_TYPES.SKIP: {
         const nextPlayerIdx = getNextPlayerIdx();
-        const status = await updatePostPlayService(
+        const nextPlayerName = attackStack > 1 ? playerName : playersDetails[nextPlayerIdx]?.name;
+        const status = await updatePlayCardService(
           lobbyId,
           playerName,
-          attackStack > 1 ? playerName : playersDetails[nextPlayerIdx]?.name,
+          nextPlayerName,
           updatedPlayerCards?.map((card) => card?.name) || [],
-          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
+          [
+            { playerName, selectedPlayerName: nextPlayerName, cardName, action: PLAY_CARD },
+            ...usedCardsDetails,
+          ],
           `${playerName} played Skip and dodged turn.`,
           attackStack - 1
         );
@@ -581,7 +631,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       }
       case CARD_TYPES.TARGETTED_ATTACK: {
         if (playerAction && selectedPlayerName) {
-          const status = await updatePostPlayService(
+          const status = await updatePlayCardService(
             lobbyId,
             playerName,
             selectedPlayerName,
@@ -591,7 +641,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               ) || []),
             ],
             [{ playerName, selectedPlayerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
-            `${playerName} launched a Targetted Attack at ${selectedPlayerName}, Good luck!`,
+            `${playerName} launched a Targetted Attack at ${selectedPlayerName}, Good Luck!`,
             attackStack + 2
           );
 
@@ -618,6 +668,15 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         notifyRequest?.to,
         notifyRequest?.from,
         cardName,
+        [
+          {
+            playerName: notifyRequest?.to,
+            selectedPlayerName: notifyRequest?.from,
+            cardName,
+            action: STEAL_CARD,
+          },
+          ...usedCardsDetails,
+        ],
         `${notifyRequest?.to} paid the Favor tax to ${notifyRequest?.from}`
       );
 
@@ -698,7 +757,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
   // Handles playing a Nope card to notify request
   const handleNopeRequest = async () => {
-    const nopeCardIdx = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.DEFUSE));
+    const nopeCardIdx = playerCards.findIndex((card) => card?.name?.startsWith(CARD_TYPES.NOPE));
     if (nopeCardIdx === -1 || notifyRequest === null) {
       console.error('Nope card missing or invalid notify request');
       setToast({ message: GENERIC_ERROR, type: 'error' });
@@ -711,11 +770,21 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   const handleRandomCardSelection = async (cardIdx) => {
     if (notifyRequest && notifyRequest.requestType !== TWO_CARDS_REQUEST) return;
 
+    const cardName = notifyRequest.shuffledCardNames?.[cardIdx];
     const status = await transferPlayerCardsService(
       lobbyId,
       notifyRequest?.to,
       notifyRequest?.from,
-      notifyRequest.shuffledCardNames?.[cardIdx],
+      cardName,
+      [
+        {
+          playerName: notifyRequest?.to,
+          selectedPlayerName: notifyRequest?.from,
+          cardName,
+          action: STEAL_CARD,
+        },
+        ...usedCardsDetails,
+      ],
       `${notifyRequest?.from} stealed Random Card from ${notifyRequest?.to}`
     );
 
@@ -773,7 +842,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const cardName = playerCards[defuseCardIdx]?.name;
 
     const nextPlayerIdx = getNextPlayerIdx();
-    const status = await updatePostPlayService(
+    const status = await updatePlayCardService(
       lobbyId,
       playerName,
       playersDetails[nextPlayerIdx]?.name,
@@ -799,7 +868,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     setPlayersDetails(updatedPlayersDetails);
 
     const nextPlayerIdx = getNextPlayerIdx(updatedPlayersDetails);
-    const status = await updatePostDrawService(
+    const status = await updateDrawCardService(
       lobbyId,
       playerName,
       updatedPlayersDetails[nextPlayerIdx]?.name,

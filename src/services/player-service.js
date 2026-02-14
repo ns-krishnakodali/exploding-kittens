@@ -82,12 +82,13 @@ export const addPlayerToLobbyService = async (lobbyId, playerName, pin, isHost =
   return GAME_STATE.LANDING;
 };
 
-// Transfers specified card from Player 1 to Player 2.
+// Transfers and record the specified card from Player 1 to Player 2.
 export const transferPlayerCardsService = async (
   lobbyId,
   playerName1,
   playerName2,
   cardName,
+  usedCardsDetails,
   statusMessage = ''
 ) => {
   try {
@@ -115,6 +116,7 @@ export const transferPlayerCardsService = async (
 
       updates[`lobby/${lobbyId}/players/${playerName1}/deck`] = player1Deck;
       updates[`lobby/${lobbyId}/players/${playerName2}/deck`] = player2Deck;
+      updates[`lobby/${lobbyId}/usedCardsDetails`] = usedCardsDetails;
 
       if (statusMessage) updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
     } else {
