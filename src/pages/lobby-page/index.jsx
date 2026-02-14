@@ -87,15 +87,17 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
             </div>
             <div className="flex flex-col md:flex-row items-center justify-between mb-8 pt-4 gap-4">
               <div>
-                <h1 className="text-4xl font-black uppercase italic tracking-tighter">
+                <h1 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">
                   Waiting Room
                 </h1>
-                <p className="text-zinc-500 font-bold uppercase text-xs tracking-[0.2em] mt-1">
+                <p className="text-zinc-500 font-bold uppercase text-xs tracking-[0.2em] mt-2 md:mt-1">
                   Status: Collecting Felines
                 </p>
               </div>
               <div className="text-center md:text-right">
-                <p className="text-sm font-black uppercase text-zinc-400 mb-1 mr-1">Game Code</p>
+                <p className="text-sm font-black uppercase text-zinc-400 mb-2 md:mb-1 mr-1">
+                  Game Code
+                </p>
                 <button
                   className="bg-black text-white px-6 py-3 rounded-2xl font-black text-3xl uppercase tracking-widest flex items-center gap-3 min-w-[8ch]"
                   type="button"

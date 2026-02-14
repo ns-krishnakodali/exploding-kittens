@@ -86,7 +86,7 @@ const App = () => {
   return (
     <div className="text-black font-sans selection:bg-red-200">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <main className="mx-auto px-8 py-2">
+      <main className="mx-auto px-6 md:px-8 py-2">
         {gameState === GAME_STATE.LANDING && (
           <LandingPage onCreate={handleCreateGame} onJoin={handleJoinGame} />
         )}

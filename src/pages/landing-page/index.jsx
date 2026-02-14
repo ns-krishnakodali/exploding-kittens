@@ -54,9 +54,9 @@ export const LandingPage = ({ onCreate, onJoin }) => {
           <button
             onClick={() => onCreate(name, pin)}
             disabled={!name || pin.length < 4}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-black italic text-2xl py-6 rounded-3xl border-4 border-black
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-black italic text-xl py-4 px-2 md:py-6 rounded-3xl border-4 border-black
             shadow-[6px_6px_0_0_#000] active:translate-x-0.75 active:translate-y-0.75 active:shadow-none transition-all disabled:opacity-50
-            disabled:cursor-not-allowed group flex items-center justify-center gap-4 cursor-pointer"
+            disabled:cursor-not-allowed group flex items-center justify-center gap-2 md:gap-4 cursor-pointer"
           >
             <PlusCircle className="group-hover:rotate-90 transition-transform" />
             HOST NEW GAME

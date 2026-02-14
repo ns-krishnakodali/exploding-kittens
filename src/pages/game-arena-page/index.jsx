@@ -904,15 +904,18 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
   return (
     <>
-      <header className="w-full border-b-4 border-black p-4 md:px-6 md:pt-4 md:pb-6 flex justify-between items-center shadow-[0_4px_0_0_#000]">
-        <div className="flex items-center gap-4 md:gap-8">
+      <header
+        className="w-full border-b-4 border-black px-1 md:px-6 py-4 md:pt-4 md:pb-6 flex flex-col md:flex-row justify-between items-center gap-y-4
+        shadow-[0_4px_0_0_#000]"
+      >
+        <div className="flex items-center gap-8">
           <div
-            className="bg-red-600 text-white px-6 py-2 border-4 border-black shadow-[6px_6px_0_0_#000] font-black italic uppercase text-xl md:text-3xl
+            className="bg-red-600 text-white px-2 md:px-6 py-2 border-4 border-black shadow-[4px_4px_0_0_#000] font-black italic uppercase text-xl md:text-3xl
             tracking-tighter"
           >
             Exploding Kittens
           </div>
-          <div className="hidden sm:flex items-center gap-6 border-l-4 border-black/10 pl-6">
+          <div className="flex items-center gap-6 border-l-4 border-black/10 pl-6">
             <div className="flex flex-col">
               <span className="text-xs font-black uppercase text-zinc-400 leading-none mb-1 tracking-widest">
                 Room Code
@@ -924,8 +927,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           </div>
         </div>
         {cardsDeck?.length && (
-          <div className="flex items-center gap-4">
-            <div className="bg-yellow-400 border-4 border-black px-4 py-1.5 rounded-xl shadow-[4px_4px_0_0_#000] hidden sm:block">
+          <div className="flex items-start gap-4">
+            <div className="bg-yellow-400 border-4 border-black px-4 py-1.5 rounded-xl shadow-[2px_2px_0_0_#000] sm:block">
               <span className="font-black italic uppercase text-xs tracking-tighter text-black">
                 Deck Size: {cardsDeck.length}
               </span>
@@ -942,7 +945,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           )}
           <div className="flex flex-col grow overflow-x-hidden">
             <section className="p-6 md:p-8 flex flex-col items-center justify-center gap-10">
-              <div className="flex flex-col md:flex-row gap-10 md:gap-40 pt-2 items-center relative">
+              <div className="flex flex-row gap-10 md:gap-40 pt-2 items-center relative">
                 <div className="flex flex-col items-center gap-3">
                   <div className="relative group">
                     <div className="absolute inset-0 translate-x-3 translate-y-3 bg-black rounded-4xl" />
@@ -950,7 +953,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     <button
                       onClick={() => handleDrawCard()}
                       disabled={!isUserTurn}
-                      className={`w-64 h-76 border-4 border-black rounded-4xl transition-all relative flex flex-col items-center justify-center gap-4
+                      className={`w-40 h-52 md:w-64 md:h-76 border-4 border-black rounded-4xl transition-all relative flex flex-col items-center justify-center gap-4
                       overflow-hidden ${
                         isUserTurn
                           ? 'bg-white hover:-translate-y-1 active:translate-y-1 shadow-[4px_4px_0_0_#000]'
@@ -978,7 +981,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                   </p>
                 </div>
                 <div className="flex flex-col items-center gap-3">
-                  <div className="relative w-64 h-76">
+                  <div className="w-40 h-52 md:w-64 md:h-76 relative">
                     <div className="absolute inset-0 border-4 border-black border-dashed rounded-4xl opacity-20 flex items-center justify-center">
                       <ArrowDownCircle size={32} className="text-black/40" />
                     </div>
@@ -1026,10 +1029,10 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                   Feline Surveillance List
                 </h3>
               </div>
-              <div className="w-full flex justify-center py-4 px-6 relative z-10">
+              <div className="w-full flex justify-center px-6 py-4 relative z-10">
                 <div
-                  className={`min-h-16 max-w-6xl w-full flex items-center justify-center gap-4 px-8 py-3 rounded-2xl border-4 border-black transition-all
-                  duration-300 transform shadow-[6px_6px_0_0_#000] ${
+                  className={`min-h-16 md:max-w-6xl w-full flex flex-wrap md:flex-nowrap items-center justify-center gap-2 md:gap-4 px-6 py-3 rounded-2xl
+                  border-4 border-black transition-all duration-300 transform shadow-[4px_4px_0_0_#000] ${
                     statusMessage
                       ? statusMessage.type === 'error'
                         ? 'bg-red-600 text-white scale-105'
@@ -1040,11 +1043,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                   {statusMessage ? (
                     <>
                       {statusMessage.type === 'error' ? (
-                        <Bomb size={28} />
+                        <Bomb size={28} className="shrink-0" />
                       ) : (
-                        <Zap size={28} className="text-yellow-400" />
+                        <Zap size={28} className="text-yellow-400 shrink-0" />
                       )}
-                      <span className="font-black italic uppercase tracking-tight text-sm md:text-xl">
+                      <span className="font-black italic uppercase tracking-tight text-sm md:text-xl text-center wrap-break-word max-w-full">
                         {statusMessage.message}
                       </span>
                     </>
@@ -1059,14 +1062,14 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               <div
                 ref={playersContainerRef}
                 tabIndex={-1}
-                className="max-w-7xl mx-auto my-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-12 gap-y-6 px-4"
+                className="max-w-7xl mx-auto my-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 md:gap-x-12 gap-y-6 px-4"
               >
                 {playersDetails.map((player, idx) => (
                   <button
                     key={idx}
                     onClick={() => handlePlayerClick(player.name, player.cardsCount, player.inGame)}
                     disabled={!playerAction}
-                    className={`p-3 border-4 border-black rounded-2xl transition-all flex items-center gap-3 ${
+                    className={`p-3 border-4 border-black rounded-2xl transition-all flex items-center justify-center gap-3 ${
                       !player.inGame
                         ? 'bg-zinc-800 border-zinc-700 grayscale opacity-40 text-zinc-600 shadow-none'
                         : player.name === currentPlayerName
@@ -1096,13 +1099,13 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 ))}
               </div>
             </section>
-            <section className="border-t-8 border-black  md:p-10 relative shadow-[inset_0_4px_0_0_rgba(0,0,0,0.05)]">
+            <section className="border-t-8 border-black py-4 md:p-8 relative shadow-[inset_0_4px_0_0_rgba(0,0,0,0.05)]">
               <div
                 ref={playerCardsRef}
                 tabIndex={-1}
                 className="flex flex-col sm:flex-row items-center justify-between relative mb-8 max-w-8xl mx-auto gap-4"
               >
-                <div className="flex items-center gap-5">
+                <div className="flex items-center justify-center gap-5">
                   <div
                     className={`w-14 h-14 border-4 border-black rounded-xl flex items-center justify-center text-2xl font-black shadow-[4px_4px_0_0_#000]
                   ${isUserTurn ? 'bg-yellow-400' : 'bg-zinc-100'}`}
@@ -1121,7 +1124,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                   </div>
                 </div>
                 {selectFavorCard && (
-                  <p className="absolute left-1/2 -translate-x-1/2 font-black uppercase text-lg tracking-widest text-red-600">
+                  <p className="md:absolute md:left-1/2 md:-translate-x-1/2 font-black uppercase text-lg tracking-widest text-red-600">
                     Choose a card to give as Favor
                   </p>
                 )}
@@ -1134,13 +1137,13 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-w-7xl mx-auto px-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-8 gap-y-6 md:gap-x-6 md:gap-y-6 max-w-7xl mx-auto px-4">
                 {playerCards.map(({ name: cardName, url }, idx) => (
                   <button
                     key={cardName + idx}
-                    className="w-60 h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
-                    shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
-                    disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100 card-enter"
+                    className="w-42 h-54 md:w-60 md:h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col items-center justify-center text-left
+                    transition-all group shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50
+                    disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100 card-enter"
                     disabled={
                       !selectFavorCard &&
                       ((!isUserTurn && !cardName.startsWith(CARD_TYPES.NOPE)) ||
@@ -1155,7 +1158,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     <img
                       src={url}
                       alt={cardName}
-                      className="w-54 h-64"
+                      className="w-58 h-66"
                       loading="eager"
                       fetchPriority="high"
                       referrerPolicy="no-referrer"
@@ -1172,8 +1175,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
             <div className="fixed inset-0 z-500 bg-black/60 flex items-center justify-center p-6 animate-in fade-in duration-300">
               <form onSubmit={handleAlterFuture}>
                 <div
-                  className="max-w-4xl w-full bg-white border-10 border-black p-8 md:px-12 md:py-8 rounded-[4rem] text-center space-y-6
-                  shadow-[10px_10px_0_0_#000] animate-in zoom-in overflow-y-auto max-h-[90vh]"
+                  className="max-w-4xl max-h-[calc(100svh-2rem)] md:max-h-[90vh] w-full bg-white border-10 border-black p-8 md:px-12 md:py-8 rounded-[4rem]
+                  text-center space-y-6 shadow-[10px_10px_0_0_#000] animate-in zoom-in overflow-y-auto"
                 >
                   <div className="space-y-2 mb-6">
                     <div
@@ -1382,8 +1385,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           {showCardModal && (
             <div className="fixed inset-0 z-550 bg-black/90 flex items-center justify-center p-6 animate-in fade-in duration-300">
               <div
-                className="max-w-6xl w-full bg-white border-10 border-black p-8 md:py-6 md:px-12 rounded-[4rem] text-center space-y-8 shadow-[10px_10px_0_0_#000]
-                animate-in zoom-in overflow-y-auto max-h-[90vh] modal-scrollbar relative"
+                className="max-w-6xl max-h-[calc(100svh-2rem)] md:max-h-[90vh] w-full bg-white border-10 border-black p-8 md:py-6 md:px-12 rounded-[4rem]
+                text-center space-y-8 shadow-[10px_10px_0_0_#000] animate-in zoom-in overflow-y-auto modal-scrollbar relative"
               >
                 <div className="space-y-3">
                   <div
