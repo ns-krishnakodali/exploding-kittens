@@ -65,11 +65,12 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   const [usedCardsDetails, setUsedCardsDetails] = useState([]); // [{playerName, cardName, action}]
   const [cardsDeck, setCardsDeck] = useState([]); // [cardName]
   const [playerCards, setPlayerCards] = useState([]); // [{name, url}]
-  const [playerDetails, setPlayersDetails] = useState([]); // [{name, cardsCount, inGame}]
+  const [playersDetails, setPlayersDetails] = useState([]); // [{name, cardsCount, inGame}]
   const [playerAction, setPlayerAction] = useState(null); // {cardName, cardIdx}
-  const [notifyRequest, setNotifyRequest] = useState(null); // {from, to, cardType, requestType}
+  const [notifyRequest, setNotifyRequest] = useState(null); // {from, to, cardType, requestType, shuffledCardNames}
   const [futureCard, setFutureCard] = useState(null);
   const [selectFavorCard, setSelectFavorCard] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
   const [explosionCardIdx, setExplosionCardIdx] = useState(null);
   const [winnerName, setWinnerName] = useState(null);
   const [statusMessage, setStatusMessage] = useState(null); // {message, type}
@@ -120,6 +121,14 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         break;
       }
       case TWO_CARDS_REQUEST: {
+        const status = await setNotifyRequestService(lobbyId, {
+          ...notifyRequest,
+          shuffledCardNames: shuffleDeckService(playerCards?.map((card) => card.name) || []),
+        });
+
+        if (!status)
+          console.error('An issue occurred when notifying responding for two cards request');
+        setNotifyRequest(null);
         break;
       }
       default: {
@@ -199,10 +208,14 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
       const notifyRequestInfo = lobbyDetails?.notifyRequest ?? null;
       setNotifyRequest(
-        notifyRequestInfo &&
-          (notifyRequestInfo.from === playerName || notifyRequestInfo.to === playerName)
+        notifyRequestInfo?.from === playerName || notifyRequestInfo?.to === playerName
           ? notifyRequestInfo
           : null
+      );
+      setShowCardModal(
+        notifyRequestInfo?.requestType === TWO_CARDS_REQUEST &&
+          notifyRequestInfo?.shuffledCardNames?.length > 0 &&
+          notifyRequestInfo.from === playerName
       );
 
       if (lobbyDetails?.winnerName) setWinnerName(lobbyDetails.winnerName);
@@ -245,16 +258,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   }, [playerName, notifyRequest, resolveNotifyRequest]);
 
   const getNextPlayerIdx = (updatedPlayerDetails = []) => {
-    const playerDetailsInfo =
-      (updatedPlayerDetails?.length ? updatedPlayerDetails : playerDetails) || [];
+    const playersDetailsInfo =
+      (updatedPlayerDetails?.length ? updatedPlayerDetails : playersDetails) || [];
 
-    const currPlayerIdx = playerDetailsInfo.findIndex((player) => player?.name === playerName);
+    const currPlayerIdx = playersDetailsInfo.findIndex((player) => player?.name === playerName);
     let nextPlayerIdx = currPlayerIdx + 1;
 
-    for (let idx = 1; idx < playerDetails.length; idx++) {
-      const playerIdx = (currPlayerIdx + idx) % playerDetails.length;
+    for (let idx = 1; idx < playersDetails.length; idx++) {
+      const playerIdx = (currPlayerIdx + idx) % playersDetails.length;
 
-      if (playerDetails[playerIdx]?.inGame) {
+      if (playersDetails[playerIdx]?.inGame) {
         nextPlayerIdx = playerIdx;
         break;
       }
@@ -264,7 +277,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   };
 
   // Handles drawing a card, optionally from the bottom of the deck.
-  const handleDrawCard = async (updatedPlayerCards = [], drawFromBottom = false) => {
+  const handleDrawCard = async (
+    updatedPlayerCards = [],
+    updatedUsedCardDetails = [],
+    drawFromBottom = false
+  ) => {
     if (!isUserTurn || !cardsDeck?.length) return;
 
     const cardIndex = drawFromBottom ? cardsDeck.length - 1 : 0;
@@ -283,13 +300,15 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const status = await updatePostDrawService(
       lobbyId,
       playerName,
-      attackStack > 1 ? playerName : playerDetails[nextPlayerIdx]?.name,
+      attackStack > 1 ? playerName : playersDetails[nextPlayerIdx]?.name,
       drawnCardName?.includes(CARD_TYPES.DEFUSE)
         ? [drawnCardName, ...existingCardNames]
         : [...existingCardNames, drawnCardName],
       true,
       updatedDeck,
-      [{ playerName, cardName: '', action: DRAW_CARD }, ...usedCardsDetails]
+      updatedUsedCardDetails.length > 0
+        ? updatedUsedCardDetails
+        : [{ playerName, cardName: '', action: DRAW_CARD }, ...usedCardsDetails]
     );
 
     if (status) {
@@ -339,7 +358,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         const status = await updatePostPlayService(
           lobbyId,
           playerName,
-          playerDetails[nextPlayerIdx]?.name,
+          playersDetails[nextPlayerIdx]?.name,
           updatedPlayerCards?.map((card) => card?.name) || [],
           [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
           `${playerName} slapped down an Attack, Good luck!`,
@@ -427,21 +446,25 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         break;
       }
       case CARD_TYPES.DRAW_FROM_THE_BOTTOM: {
+        const updatedUsedCardDetails = [
+          { playerName, cardName, action: PLAY_CARD },
+          ...usedCardsDetails,
+        ];
         const status = await updatePostPlayService(
           lobbyId,
           playerName,
           null,
           updatedPlayerCards?.map((card) => card?.name) || [],
-          [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
+          updatedUsedCardDetails,
           `${playerName} Drew From The Bottom!`
         );
 
         if (!status) {
           console.error(`An issue occurred when ${cardName}`);
           setToast({ message: ERROR_MESSAGE, type: 'error' });
+          return;
         }
-
-        await handleDrawCard(updatedPlayerCards, true);
+        await handleDrawCard(updatedPlayerCards, updatedUsedCardDetails, true);
         break;
       }
       case CARD_TYPES.FAVOR: {
@@ -524,7 +547,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
         const status = await updatePostPlayService(
           lobbyId,
           playerName,
-          attackStack > 1 ? playerName : playerDetails[nextPlayerIdx]?.name,
+          attackStack > 1 ? playerName : playersDetails[nextPlayerIdx]?.name,
           updatedPlayerCards?.map((card) => card?.name) || [],
           [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
           `${playerName} played Skip and dodged turn.`,
@@ -625,11 +648,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   };
 
   // Handles player selection when an interactive card is active
-  const handlePlayerClick = (selectedPlayerName) => {
+  const handlePlayerClick = (selectedPlayerName, cardsCount, inGame) => {
     if (!playerAction) return;
 
     const { cardName, cardIdx } = playerAction;
-    if (playerName === selectedPlayerName) {
+    if (playerName === selectedPlayerName || (cardsCount ?? 0) === 0 || !inGame) {
       setToast({ message: CHOOSE_ANOTHER_PLAYER, type: 'info' });
       return;
     }
@@ -663,6 +686,32 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       return;
     }
     handlePlayCard(playerCards[nopeCardIdx]?.name, nopeCardIdx);
+  };
+
+  // Handles random card selection from shuffled deck
+  const handleRandomCardSelection = async (cardIdx) => {
+    if (notifyRequest && notifyRequest.requestType !== TWO_CARDS_REQUEST) return;
+
+    const status = await transferPlayerCardsService(
+      lobbyId,
+      notifyRequest.to,
+      notifyRequest.from,
+      notifyRequest.shuffledCardNames?.[cardIdx],
+      `${notifyRequest?.from} stealed Random Card from ${notifyRequest?.to}`
+    );
+
+    if (!status) {
+      console.error('An issue occurred when processing two cards request');
+      setToast({ message: ERROR_MESSAGE, type: 'error' });
+    }
+
+    handleCardsModalClosure();
+  };
+
+  // Handles modal close conditions
+  const handleCardsModalClosure = async () => {
+    setShowCardModal(false);
+    await removeNotifyRequestService(lobbyId);
   };
 
   // Handles the defuse action when a player draws an Exploding Kitten.
@@ -708,7 +757,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const status = await updatePostPlayService(
       lobbyId,
       playerName,
-      playerDetails[nextPlayerIdx]?.name,
+      playersDetails[nextPlayerIdx]?.name,
       updatedPlayerCards?.map((card) => card?.name) || [],
       [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
       `${playerName} Defused the Explosion`,
@@ -725,16 +774,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
 
   // Handles player elimination from an explosion and processes winning logic.
   const handleExplodeCardPlay = async () => {
-    const updatedPlayerDetails = playerDetails?.map((player) =>
+    const updatedPlayersDetails = playersDetails?.map((player) =>
       player.name === playerName ? { ...player, inGame: false } : player
     );
-    setPlayersDetails(updatedPlayerDetails);
+    setPlayersDetails(updatedPlayersDetails);
 
-    const nextPlayerIdx = getNextPlayerIdx(updatedPlayerDetails);
+    const nextPlayerIdx = getNextPlayerIdx(updatedPlayersDetails);
     const status = await updatePostDrawService(
       lobbyId,
       playerName,
-      updatedPlayerDetails[nextPlayerIdx]?.name,
+      updatedPlayersDetails[nextPlayerIdx]?.name,
       [...(playerCards?.map((card) => card?.name) || [])],
       false,
       [...cardsDeck.slice(0, explosionCardIdx), ...cardsDeck.slice(explosionCardIdx + 1)],
@@ -751,7 +800,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
       setToast({ message: ERROR_MESSAGE, type: 'error' });
     } else {
       const inGameNames =
-        updatedPlayerDetails.filter((player) => player?.inGame)?.map((player) => player?.name) ||
+        updatedPlayersDetails.filter((player) => player?.inGame)?.map((player) => player?.name) ||
         [];
       if (inGameNames?.length === 1) setGameWinnerService(lobbyId, inGameNames[0]);
     }
@@ -813,7 +862,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     <button
                       onClick={() => handleDrawCard()}
                       disabled={!isUserTurn}
-                      className={`w-60 h-72 border-4 border-black rounded-4xl transition-all relative flex flex-col items-center justify-center gap-4
+                      className={`w-64 h-76 border-4 border-black rounded-4xl transition-all relative flex flex-col items-center justify-center gap-4
                       overflow-hidden ${
                         isUserTurn
                           ? 'bg-white hover:-translate-y-1 active:translate-y-1 shadow-[4px_4px_0_0_#000]'
@@ -841,9 +890,9 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                   </p>
                 </div>
                 <div className="flex flex-col items-center gap-3">
-                  <div className="relative w-60 h-72">
+                  <div className="relative w-64 h-76">
                     <div className="absolute inset-0 border-4 border-black border-dashed rounded-4xl opacity-20 flex items-center justify-center">
-                      <ArrowDownCircle size={32} className="text-black/30" />
+                      <ArrowDownCircle size={32} className="text-black/40" />
                     </div>
                     {usedCardsDetails?.length > 0 ? (
                       usedCardsDetails
@@ -862,7 +911,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                             <img
                               src={allCardImages?.[cardDetails?.cardName]?.url}
                               alt={cardDetails?.cardName}
-                              className="w-60 h-68"
+                              className="w-60 h-70"
                               loading="eager"
                               fetchPriority="high"
                               style={{ visibility: 'hidden' }}
@@ -924,10 +973,10 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 tabIndex={-1}
                 className="max-w-7xl mx-auto my-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-12 gap-y-6 px-4"
               >
-                {playerDetails.map((player, idx) => (
+                {playersDetails.map((player, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handlePlayerClick(player.name)}
+                    onClick={() => handlePlayerClick(player.name, player.cardsCount, player.inGame)}
                     disabled={!playerAction}
                     className={`p-3 border-4 border-black rounded-2xl transition-all flex items-center gap-3 ${
                       !player.inGame
@@ -970,7 +1019,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     className={`w-14 h-14 border-4 border-black rounded-xl flex items-center justify-center text-2xl font-black shadow-[4px_4px_0_0_#000]
                   ${isUserTurn ? 'bg-yellow-400' : 'bg-zinc-100'}`}
                   >
-                    Y
+                    {playerName?.[0]?.toUpperCase()}
                   </div>
                   <div>
                     <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
@@ -1000,20 +1049,20 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-w-7xl mx-auto px-4">
                 {playerCards.map(({ name: cardName, url }, idx) => (
                   <button
-                    key={idx}
-                    onClick={() => handleSelectedCard(cardName, idx)}
+                    key={cardName + idx}
+                    className="w-60 h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
+                    shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                    disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100 card-enter"
                     disabled={
                       !selectFavorCard &&
                       ((!isUserTurn && !cardName.startsWith(CARD_TYPES.NOPE)) ||
                         cardName.includes(CARD_TYPES.DEFUSE) ||
                         !(
-                          playerDetails.find((player) => player?.name === playerName)?.inGame ??
+                          playersDetails.find((player) => player?.name === playerName)?.inGame ??
                           false
                         ))
                     }
-                    className="w-60 h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col justify-between text-left transition-all group
-                    shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
-                    disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100"
+                    onClick={() => handleSelectedCard(cardName, idx)}
                   >
                     <img
                       src={url}
@@ -1133,7 +1182,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
             </div>
           )}
           {/* Notify Action Request Modal */}
-          {notifyRequest !== null && !selectFavorCard && (
+          {notifyRequest !== null && !selectFavorCard && !showCardModal && (
             <div className="fixed inset-0 z-650 bg-black/80 flex items-center justify-center p-6 animate-in fade-in duration-300">
               <div
                 className="max-w-xl w-full bg-white border-8 border-black p-8 md:p-12 rounded-[4rem] text-center space-y-8 shadow-[10px_10px_0_0_#000]
@@ -1238,6 +1287,59 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {/* Select Player Cards Modal */}
+          {showCardModal && (
+            <div className="fixed inset-0 z-550 bg-black/90 flex items-center justify-center p-6 animate-in fade-in duration-300">
+              <div
+                className="max-w-6xl w-full bg-white border-10 border-black p-8 md:py-6 md:px-12 rounded-[4rem] text-center space-y-8 shadow-[10px_10px_0_0_#000]
+                animate-in zoom-in overflow-y-auto max-h-[90vh] modal-scrollbar relative"
+              >
+                <div className="space-y-3">
+                  <div
+                    className="bg-yellow-400 text-white px-8 py-2 rounded-full border-4 border-black inline-block font-black italic uppercase text-lg
+                    shadow-[4px_4px_0_0_#000]"
+                  >
+                    Infiltrating {notifyRequest.to}
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-black italic uppercase text-black tracking-tighter leading-none">
+                    BLIND ACQUISITION
+                  </h2>
+                  <p className="font-black text-zinc-400 uppercase tracking-widest text-sm">
+                    You can only see the blinds. Trust your instincts.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                  {Array.from(
+                    { length: notifyRequest?.shuffledCardNames?.length ?? 0 },
+                    (_, i) => i + 1
+                  ).map((idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleRandomCardSelection(idx)}
+                      className="w-full aspect-2/3 border-4 border-black rounded-4xl p-5 flex flex-col justify-between text-left transition-all
+                      shadow-[4px_4px_0_0_#000] hover:-translate-y-2 active:scale-95 group bg-zinc-100 hover:bg-yellow-400"
+                    >
+                      <div className="grow flex flex-col items-center justify-center gap-4">
+                        <PawPrint
+                          size={64}
+                          className="text-zinc-300 group-hover:text-black group-hover:animate-bounce"
+                        />
+                        <span className="font-black italic text-xs text-zinc-400 group-hover:text-black">
+                          ???
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={handleCardsModalClosure}
+                  className="px-12 py-4 border-4 border-black rounded-2xl font-black italic uppercase hover:bg-zinc-200 shadow-[4px_4px_0_0_#000]"
+                >
+                  Cancel Action
+                </button>
               </div>
             </div>
           )}

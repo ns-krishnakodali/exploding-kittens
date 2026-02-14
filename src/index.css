@@ -32,3 +32,32 @@ button[disabled],
 *::-webkit-scrollbar-thumb:hover {
   background: #8e9cb0;
 }
+
+.modal-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+.modal-scrollbar::-webkit-scrollbar-thumb {
+  background: #000;
+  border-radius: 10px;
+  border: 2px solid white;
+}
+.modal-scrollbar::-webkit-scrollbar-button:single-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+/* Extra safety for older engines */
+.modal-scrollbar::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+}
+.modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #000 transparent;
+}

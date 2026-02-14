@@ -9,6 +9,10 @@
   animation: dots 1.5s steps(6, end) infinite;
 }
 
+.card-enter {
+  animation: cardEnter 250ms ease-out;
+}
+
 @keyframes dots {
   0% {
     clip-path: inset(0 100% 0 0);
@@ -21,5 +25,16 @@
   }
   100% {
     clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

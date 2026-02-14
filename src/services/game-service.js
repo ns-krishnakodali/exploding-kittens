@@ -97,7 +97,7 @@ export const updatePostDrawService = async (
     updates[`/lobby/${lobbyId}/players/${playerName}/inGame`] = inGameStatus;
     updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
     updates[`/lobby/${lobbyId}/usedCardsDetails`] = usedCardsDetails;
-    updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
+    if (statusMessage) updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
 
     await runTransaction(ref(db, `/lobby/${lobbyId}/attackStack`), (currentAttackStack) => {
       if (!currentAttackStack || currentAttackStack <= 0) return currentAttackStack;
