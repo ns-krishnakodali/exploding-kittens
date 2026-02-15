@@ -538,10 +538,9 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           return;
         }
 
-        const nonNopeIdx =
-          usedCardsDetails.findIndex(
-            (cardDetails) => !cardDetails?.cardName.startsWith(CARD_TYPES.NOPE)
-          ) % 2;
+        const nonNopeIdx = usedCardsDetails.findIndex(
+          (cardDetails) => !cardDetails?.cardName.startsWith(CARD_TYPES.NOPE)
+        );
         if (usedCardsDetails[0]?.action !== PLAY_CARD || nonNopeIdx === -1) {
           const status = await updatePlayCardService(
             lobbyId,
@@ -945,7 +944,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           )}
           <div className="flex flex-col grow overflow-x-hidden">
             <section className="p-6 md:p-8 flex flex-col items-center justify-center gap-10">
-              <div className="flex flex-row gap-10 md:gap-40 pt-2 items-center relative">
+              <div className="flex flex-row gap-15 md:gap-40 pt-2 items-center relative">
                 <div className="flex flex-col items-center gap-3">
                   <div className="relative group">
                     <div className="absolute inset-0 translate-x-3 translate-y-3 bg-black rounded-4xl" />
@@ -1141,7 +1140,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 {playerCards.map(({ name: cardName, url }, idx) => (
                   <button
                     key={cardName + idx}
-                    className="w-42 h-54 md:w-60 md:h-72 aspect-3/4 border-4 border-black rounded-3xl p-3 flex flex-col items-center justify-center text-left
+                    className="w-42 h-54 md:w-60 md:h-72 aspect-3/4 border-4 border-black rounded-3xl p-2 md:p-3 flex flex-col items-center justify-center text-left
                     transition-all group shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50
                     disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100 card-enter"
                     disabled={
@@ -1158,7 +1157,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     <img
                       src={url}
                       alt={cardName}
-                      className="w-58 h-66"
+                      className="w-58 h-68"
                       loading="eager"
                       fetchPriority="high"
                       referrerPolicy="no-referrer"

@@ -103,12 +103,15 @@ export const processNopeActionService = async (
       lobby.backupCardsDeck = lobby.cardsDeck;
       lobby.cardsDeck = backupCardsDeck;
     } else if (
-      nonNopeCardName.startsWith(CARD_TYPES.SHUFFLE) ||
+      nonNopeCardName.startsWith(CARD_TYPES.FAVOR) ||
       CAT_CARD_NAMES.some((cardName) => nonNopeCardName === cardName)
     ) {
       const notifyRequest = lobby?.notifyRequest ?? {};
-      if (Object.keys(notifyRequest) !== 0) lobby.notifyRequestBackup = notifyRequest;
-      lobby.notifyRequest = nullifyNope ? lobby.notifyRequestBackup : null;
+      if (Object.keys(notifyRequest).length > 0) lobby.notifyRequestBackup = notifyRequest;
+      lobby.notifyRequest =
+        nullifyNope && Object.keys(lobby?.notifyRequestBackup ?? {}).length > 0
+          ? lobby.notifyRequestBackup
+          : null;
     }
     lobby.statusMessage = `${playerName} played a Nope`;
 
