@@ -119,6 +119,18 @@ export const processNopeActionService = async (
   });
 };
 
+export const lobbyExistsStatus = async (lobbyId) => {
+  if (!lobbyId) return false;
+
+  try {
+    const snapshot = await get(ref(db, `lobby/${lobbyId}`));
+    return snapshot.exists();
+  } catch (error) {
+    console.error(`Error checking lobby ${lobbyId}:`, error);
+    return false;
+  }
+};
+
 export const getAllCardsImages = async () => {
   try {
     const snapshot = await get(ref(db, 'cardImages'));

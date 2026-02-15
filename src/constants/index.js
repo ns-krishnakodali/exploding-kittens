@@ -53,6 +53,8 @@ export const ATTACK_PREFIX = 'Attack';
 export const EXPLOSION_PREFIX = 'Explo';
 export const SELECT_PLAYER_PREFIX = 'Select a player to';
 
+export const LOBBY_DETAILS = 'LOBBY_DETAILS';
+
 export const DRAW_CARD = 'Draw-Card';
 export const PLAY_CARD = 'Play-Card';
 export const STEAL_CARD = 'Steal-Card';

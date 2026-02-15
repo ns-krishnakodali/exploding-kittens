@@ -48,6 +48,7 @@ import {
   getCatCardsCountService,
   getPlayerCardsService,
   getPlayerDetailsService,
+  lobbyExistsStatus,
   processNopeActionService,
   removeNotifyRequestService,
   setGameWinnerService,
@@ -155,23 +156,29 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
   }, [lobbyId, playerName, playerCards, notifyRequest, usedCardsDetails]);
 
   useEffect(() => {
-    const fetchAllCardImages = async () => {
+    const initAndLoadImages = async () => {
+      const status = await lobbyExistsStatus(lobbyId);
+      if (!status) {
+        endGame();
+        return;
+      }
+
       const cardImages = await getAllCardsImages();
       setAllCardImages(cardImages);
 
       await Promise.all(
-        Object.values(cardImages).map(async ({ url }) => {
+        Object.values(cardImages).map(({ url }) => {
           const img = new Image();
           img.src = url;
-          await img.decode().catch(() => {});
+          return img.decode().catch(() => {});
         })
       );
 
       setIsLoading(false);
     };
 
-    fetchAllCardImages();
-  }, []);
+    initAndLoadImages();
+  }, [lobbyId, endGame]);
 
   useEffect(() => {
     if (playerAction && playersContainerRef.current) {

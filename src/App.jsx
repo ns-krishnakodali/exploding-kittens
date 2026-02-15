@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Loading, Toast } from './components';
-import { GENERIC_ERROR, GAME_STATE, LOBBY_STATUS, UNKOWN_ERROR } from './constants';
+import { GENERIC_ERROR, GAME_STATE, LOBBY_STATUS, UNKOWN_ERROR, LOBBY_DETAILS } from './constants';
 import { GameArenaPage, LandingPage, LobbyPage } from './pages';
 import {
   addPlayerToLobbyService,
@@ -10,6 +10,7 @@ import {
   startGameService,
   updateLobbyStatusService,
 } from './services';
+import { deleteStorageValue, getStorageValue, setStorageValue } from './utils';
 
 const App = () => {
   const [lobbyId, setLobbyId] = useState(null);
@@ -18,6 +19,16 @@ const App = () => {
   const [playerName, setPlayerName] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    const lobbyDetails = getStorageValue(LOBBY_DETAILS, {});
+    if (Object.keys(lobbyDetails).length === 0) return;
+
+    setLobbyId(lobbyDetails?.lobbyId);
+    setGameId(lobbyDetails?.gameId);
+    setPlayerName(lobbyDetails?.playerName);
+    setGameState(GAME_STATE.GAME);
+  }, []);
 
   const handleCreateGame = async (newPlayerName, pin) => {
     setLoading(true);
@@ -45,9 +56,15 @@ const App = () => {
         return;
       }
 
+      setStorageValue(LOBBY_DETAILS, {
+        lobbyId: existingLobbyId,
+        gameId: displayCode,
+        playerName: newPlayerName,
+      });
+
       setLobbyId(existingLobbyId);
-      setPlayerName(newPlayerName);
       setGameId(displayCode);
+      setPlayerName(newPlayerName);
       setGameState(gameStateInfo);
     } catch (err) {
       console.error(err);
@@ -60,6 +77,7 @@ const App = () => {
   const handleStartGame = () => {
     const status = startGameService(lobbyId, playerName);
     if (status) {
+      setStorageValue(LOBBY_DETAILS, { lobbyId, gameId, playerName });
       updateLobbyStatusService(lobbyId, LOBBY_STATUS.IN_GAME);
       setGameState(GAME_STATE.GAME);
     } else {
@@ -78,6 +96,7 @@ const App = () => {
   };
 
   const endGame = () => {
+    deleteStorageValue(LOBBY_DETAILS);
     setGameState(GAME_STATE.LANDING);
   };
 
