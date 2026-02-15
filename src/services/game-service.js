@@ -97,11 +97,11 @@ export const processNopeActionService = async (
       lobby.attackStack = lobby.attackStack + (nullifyNope ? -1 : 1);
     } else if (
       nonNopeCardName.startsWith(CARD_TYPES.SHUFFLE) &&
-      (lobby?.backupCardsDeck ?? []).length !== 0
+      (lobby?.cardsDeckBackup ?? []).length !== 0
     ) {
-      const backupCardsDeck = lobby.backupCardsDeck;
-      lobby.backupCardsDeck = lobby.cardsDeck;
-      lobby.cardsDeck = backupCardsDeck;
+      const cardsDeckBackup = lobby.cardsDeckBackup;
+      lobby.cardsDeckBackup = lobby.cardsDeck;
+      lobby.cardsDeck = cardsDeckBackup;
     } else if (
       nonNopeCardName.startsWith(CARD_TYPES.FAVOR) ||
       CAT_CARD_NAMES.some((cardName) => nonNopeCardName === cardName)
@@ -203,9 +203,9 @@ export const updatePlayCardService = async (
     if (attackStack !== null && attackStack >= 0)
       updates[`/lobby/${lobbyId}/attackStack`] = attackStack;
     if (deckSnapshot !== null) {
-      const { original: cardsDeck, backup: backupCardsDeck } = deckSnapshot;
+      const { original: cardsDeck, backup: cardsDeckBackup } = deckSnapshot;
       updates[`/lobby/${lobbyId}/cardsDeck`] = cardsDeck;
-      updates[`/lobby/${lobbyId}/backupCardsDeck`] = backupCardsDeck;
+      updates[`/lobby/${lobbyId}/cardsDeckBackup`] = cardsDeckBackup;
     }
 
     await update(ref(db), updates);
