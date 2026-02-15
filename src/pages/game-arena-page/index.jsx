@@ -11,6 +11,7 @@ import {
   History,
   Inbox,
   ListChecks,
+  LogOut,
   PartyPopper,
   PawPrint,
   RefreshCw,
@@ -62,7 +63,7 @@ import {
 } from '../../services';
 import { getRandomInt } from '../../utils';
 
-export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
+export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
   const [allCardImages, setAllCardImages] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUserTurn, setIsUserTurn] = useState(true);
@@ -159,7 +160,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const initAndLoadImages = async () => {
       const status = await lobbyExistsStatus(lobbyId);
       if (!status) {
-        endGame();
+        leaveGame();
         return;
       }
 
@@ -178,7 +179,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     };
 
     initAndLoadImages();
-  }, [lobbyId, endGame]);
+  }, [lobbyId, leaveGame]);
 
   useEffect(() => {
     if (playerAction && playersContainerRef.current) {
@@ -851,11 +852,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
     const status = await updatePlayCardService(
       lobbyId,
       playerName,
-      playersDetails[nextPlayerIdx]?.name,
+      attackStack === 0 && playersDetails[nextPlayerIdx]?.name,
       updatedPlayerCards?.map((card) => card?.name) || [],
       [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
       `${playerName} Defused the Explosion`,
-      null,
+      attackStack > 0 && attackStack - 1,
       { original: newCardsDeck, backup: cardsDeck }
     );
 
@@ -933,8 +934,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
           </div>
         </div>
         {cardsDeck?.length && (
-          <div className="flex items-start gap-4">
-            <div className="bg-yellow-400 border-4 border-black px-4 py-1.5 rounded-xl shadow-[2px_2px_0_0_#000] sm:block">
+          <div className="flex items-start gap-6">
+            <button
+              className="bg-white border-4 border-black px-4 py-2 rounded-xl shadow-[2px_2px_0_0_#000] font-black italic uppercase text-xs hover:bg-zinc-200
+              transition-colors flex items-center gap-2"
+              onClick={leaveGame}
+            >
+              <LogOut size={14} />
+              Leave Match
+            </button>
+            <div className="bg-yellow-400 border-4 border-black px-4 py-2 rounded-xl shadow-[2px_2px_0_0_#000] flex items-center gap-2">
               <span className="font-black italic uppercase text-xs tracking-tighter text-black">
                 Deck Size: {cardsDeck.length}
               </span>
@@ -998,7 +1007,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                         .map((cardDetails, idx) => (
                           <div
                             key={idx}
-                            className={`absolute inset-0 border-4 border-black rounded-4xl p-1 flex flex-col justify-center shadow-[2px_2px_0_0_rgba(0,0,0,1)]
+                            className={`absolute inset-0 border-4 border-black rounded-4xl p-2 md:p-1 flex flex-col justify-center shadow-[2px_2px_0_0_rgba(0,0,0,1)]
                             animate-in slide-in-from-top-4`}
                             style={{
                               transform: `rotate(${idx * -6}deg) translate(${idx * -10}px, ${idx * -4}px)`,
@@ -1147,7 +1156,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                 {playerCards.map(({ name: cardName, url }, idx) => (
                   <button
                     key={cardName + idx}
-                    className="w-42 h-54 md:w-60 md:h-72 aspect-3/4 border-4 border-black rounded-3xl p-2 md:p-3 flex flex-col items-center justify-center text-left
+                    className="w-42 h-54 md:w-60 md:h-72 aspect-3/4 border-4 border-black rounded-3xl p-1.5 md:p-1 flex flex-col items-center justify-center text-left
                     transition-all group shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50
                     disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100 card-enter"
                     disabled={
@@ -1164,7 +1173,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     <img
                       src={url}
                       alt={cardName}
-                      className="w-58 h-68"
+                      className="w-58 h-68 rounded-2xl"
                       loading="eager"
                       fetchPriority="high"
                       referrerPolicy="no-referrer"
@@ -1191,7 +1200,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                     >
                       Temporal Vision
                     </div>
-                    <h2 className="text-2xl md:text-3xl font-black italic uppercase text-black tracking-tighter leading-none mb-2">
+                    <h2 className="text-2xl md:text-3xl font-black italic uppercase text-black tracking-tighter leading-none my-2">
                       {futureCard === CARD_TYPES.ALTER_THE_FUTURE
                         ? 'Alter the Future'
                         : 'See the Future'}
@@ -1202,7 +1211,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                         : 'Gaze into the top 3 cards of the deck.'}
                     </p>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-6">
+                  <div className="flex flex-wrap justify-center gap-6 md:gap-8">
                     {cardsDeck?.slice(0, 3)?.map((cardName, idx) => (
                       <div key={idx} className="flex flex-col items-center gap-4">
                         <div className={`flex items-center justify-centertext-center`}>
@@ -1354,7 +1363,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                         ? `Negotiating with ${notifyRequest.to} for the requested card`
                         : `${notifyRequest.from} ${
                             notifyRequest.requestType === FAVOR_REQUEST
-                              ? 'is requesting a random'
+                              ? 'is requesting a favor'
                               : notifyRequest.requestType === TWO_CARDS_REQUEST
                                 ? 'will take a random blind'
                                 : `is demanding ${notifyRequest.cardType?.replaceAll('-', ' ')}`
@@ -1539,7 +1548,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, endGame }) => {
                   </p>
                 </div>
                 <button
-                  onClick={endGame}
+                  onClick={leaveGame}
                   className="w-fit relative z-10 bg-red-600 text-white font-black italic text-md md:text-2xl p-6 rounded-[3rem] border-8 border-black
                   shadow-[8px_8px_0_0_#000] hover:bg-red-700 transition-all flex items-center justify-center gap-4"
                 >

@@ -95,7 +95,7 @@ const App = () => {
     setGameState(GAME_STATE.GAME);
   };
 
-  const endGame = () => {
+  const leaveGame = () => {
     deleteStorageValue(LOBBY_DETAILS);
     setGameState(GAME_STATE.LANDING);
   };
@@ -124,7 +124,7 @@ const App = () => {
             lobbyId={lobbyId}
             gameId={gameId}
             playerName={playerName}
-            endGame={endGame}
+            leaveGame={leaveGame}
           />
         )}
       </main>

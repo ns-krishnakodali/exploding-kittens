@@ -19,7 +19,7 @@ Below are representative UI images of the application. All images are located in
 
 Users can create a new lobby or join an existing one using a room code.
 
-<img src="resources/landing-page.png" alt = "Landing Page" width="70%" />
+<img src="resources/landing-page.png" alt = "Landing Page" width="75%" />
 
 ---
 
@@ -27,7 +27,7 @@ Users can create a new lobby or join an existing one using a room code.
 
 Displays connected players, host controls, and game status before the match begins.
 
-<img src="resources/lobby-page.png" alt = "Lobby Page" width="70%" />
+<img src="resources/lobby-page.png" alt = "Lobby Page" width="75%" />
 
 ---
 
@@ -35,8 +35,8 @@ Displays connected players, host controls, and game status before the match begi
 
 Main gameplay interface showing player hands, current turn indicator, deck interactions, and real-time state updates.
 
-<img src="resources/game-page1.png" alt = "Game Page 1" width="70%" />
-<img src="resources/game-page2.png" alt = "Game Page 2" width="70%" />
+<img src="resources/game-page1.png" alt = "Game Page 1" width="75%" />
+<img src="resources/game-page2.png" alt = "Game Page 2" width="75%" />
 
 ---
 
