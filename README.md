@@ -2,12 +2,41 @@
 
 This is a real-time multiplayer implementation of **Exploding Kittens** developed using:
 
-- **React + Vite** (Frontend)
+- **React + Vite + Tailwind** (Frontend)
 - **Firebase Realtime Database** (Live game state)
 - **Firebase Storage** (Static assets)
 - **Firebase Hosting** (Deployment)
 
 The system is designed around a room-based session model where each game instance is isolated under a unique `lobbyId`.
+
+---
+
+## UI Screenshots
+
+Below are representative UI images of the application. All images are located inside the `resources/` directory.
+
+### Landing Page
+
+Users can create a new lobby or join an existing one using a room code.
+
+<img src="resources/landing-page.png" alt = "Landing Page" width="70%" />
+
+---
+
+### Lobby Page
+
+Displays connected players, host controls, and game status before the match begins.
+
+<img src="resources/lobby-page.png" alt = "Lobby Page" width="70%" />
+
+---
+
+### Game Page (Gameplay View)
+
+Main gameplay interface showing player hands, current turn indicator, deck interactions, and real-time state updates.
+
+<img src="resources/game-page1.png" alt = "Game Page 1" width="70%" />
+<img src="resources/game-page2.png" alt = "Game Page 2" width="70%" />
 
 ---
 
