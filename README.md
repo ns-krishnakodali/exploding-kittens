@@ -110,7 +110,8 @@ The **Realtime Database** acts as the **single source of truth**. All players su
         "cardType": "cardType",
         "requestType": "requestType",
         "shuffledCardNames": ["cardName2", "cardName1"]
-      }
+      },
+      "winnerName": "playerName"
     }
   },
   "lobbyCodes": {
@@ -170,8 +171,6 @@ Each player node contains:
 
 Player decks are stored separately to avoid rewriting entire lobby state.
 
----
-
 ### 5. `usedCardsDetails`
 
 Maintained as a **stack**.
@@ -187,8 +186,6 @@ Actions tracked:
 - `Steal-Card`
 
 This allows deterministic state tracing.
-
----
 
 ### 6. `notifyRequest`
 
@@ -212,21 +209,16 @@ Fields:
 
 When a steal interaction completes or is cancelled, this field is cleared or restored using `notifyRequestBackup`.
 
----
+### 7. `winnerName`
 
-### 7. Backup Fields
+Stores the name of the player who wins the game.
 
-These are used specifically for handling **Nope** interruptions. The Two backup fields are:
+This field is set when the lobby `status` transitions to `FINISHED` and only one active player (`inGame: true`) remains. It acts as the single authoritative source for determining the winner across all connected clients.
 
-- `cardsDeckBackup`
-- `notifyRequestBackup`
+By storing `winnerName` at the lobby level:
 
-If a Nope invalidates a move:
-
-- The previous state is restored from backup.
-- This ensures deterministic rollback without recomputing state.
-
----
+- All players receive the winner update in real time.
+- The UI does not need to recompute the winner locally.
 
 ### 8. `lobbyCodes`
 
@@ -237,6 +229,18 @@ lobbyCodes/{ROOM_CODE} - lobbyId
 Maps a public 6-digit room code to the internal Firebase `lobbyId`, acting as a lightweight proxy layer to avoid exposing Firebase-generated keys.
 
 **Enables:** human-readable room codes, fast lobby lookup, and a clean user-join flow.
+
+### 9. `Backup Fields`
+
+These are used specifically for handling **Nope** interruptions. The Two backup fields are:
+
+- `cardsDeckBackup`
+- `notifyRequestBackup`
+
+If a Nope invalidates a move:
+
+- The previous state is restored from backup.
+- This ensures deterministic rollback without recomputing state.
 
 ---
 
