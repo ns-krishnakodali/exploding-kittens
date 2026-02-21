@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 import { PlusCircle, Bomb, Shield, Zap } from 'lucide-react';
 
 export const LandingPage = ({ onCreate, onJoin }) => {

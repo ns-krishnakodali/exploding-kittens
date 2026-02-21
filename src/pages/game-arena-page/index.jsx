@@ -1017,7 +1017,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                             <img
                               src={allCardImages?.[cardDetails?.cardName]?.url}
                               alt={cardDetails?.cardName}
-                              className="w-60 h-70"
+                              className="w-60 h-70 rounded-xl"
                               loading="eager"
                               fetchPriority="high"
                               style={{ visibility: 'hidden' }}
