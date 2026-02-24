@@ -139,10 +139,14 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
         break;
       }
       case TWO_CARDS_REQUEST: {
-        const status = await setNotifyRequestService(lobbyId, {
-          ...notifyRequest,
-          shuffledCardNames: shuffleDeckService(playerCards?.map((card) => card.name) || []),
-        });
+        const status = await setNotifyRequestService(
+          lobbyId,
+          {
+            ...notifyRequest,
+            shuffledCardNames: shuffleDeckService(playerCards?.map((card) => card.name) || []),
+          },
+          `${playerName} braces for a random steal`
+        );
 
         if (!status)
           console.error('An issue occurred when notifying responding for two cards request');
@@ -1145,10 +1149,10 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                 )}
                 {attackStack > 0 && (
                   <div
-                    className="bg-red-600 text-white px-4 py-2 rounded-xl border-4 border-black font-black italic shadow-[4px_4px_0_0_#000] 
-                    animate-pulse flex items-center gap-2 text-sm"
+                    className="bg-red-600 text-white px-4 py-2 rounded-xl border-4 border-black font-black italic shadow-[4px_4px_0_0_#000]
+                    uppercase animate-pulse flex items-center gap-2 text-sm"
                   >
-                    <AlertTriangle size={16} /> STACKED_TURNS: {attackStack}
+                    <AlertTriangle size={16} /> Stacked_Turns: {attackStack}
                   </div>
                 )}
               </div>
