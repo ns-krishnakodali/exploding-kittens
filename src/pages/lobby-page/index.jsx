@@ -2,14 +2,27 @@ import { useEffect, useState } from 'react';
 import { Check, Copy, Crown, LogOut, Play, Sword, Zap } from 'lucide-react';
 
 import {
+  lobbyExistsStatus,
   removePlayerFromLobbyService,
   subscribeToGameStatus,
   subscribeToLobbyPlayers,
 } from '../../services';
 import { LOBBY_STATUS } from '../../constants';
 
-export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, startGame }) => {
+export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, startGame, leaveGame }) => {
   const [lobbyPlayers, setLobbyPlayers] = useState({});
+
+  useEffect(() => {
+    const checkGameStatus = async () => {
+      const status = await lobbyExistsStatus(lobbyId);
+      if (!status) {
+        leaveGame();
+        return;
+      }
+    };
+
+    checkGameStatus();
+  }, [lobbyId, leaveGame]);
 
   useEffect(() => {
     const unsubscribe = subscribeToLobbyPlayers(lobbyId, (players) => {
@@ -31,7 +44,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
 
   const handleLeaveLobby = async () => {
     const status = await removePlayerFromLobbyService(lobbyId, playerName);
-    if (status) onLeave();
+    if (status) leaveGame();
   };
 
   const copyCode = async () => {
@@ -75,19 +88,19 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
     });
 
   return (
-    <div className="px-2 py-8 md:px-6 max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-12 duration-500">
+    <div className="px-3 py-8 md:px-6 max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-12 duration-500">
       <div className="flex flex-col md:flex-row gap-8 mt-2">
         <div className="grow space-y-6">
-          <div className="bg-white border-4 border-black rounded-[3rem] p-8 shadow-[8px_8px_0_0_#000] relative">
+          <div className="bg-white border-4 border-black rounded-[3rem] p-6 md:p-8 shadow-[8px_8px_0_0_#000] relative">
             <div
               className="absolute -top-6 -left-6 bg-yellow-400 border-4 border-black px-4 py-2 rounded-xl font-black italic rotate-[-5deg]
               shadow-[4px_4px_0_0_#000]"
             >
               Felines Lobby
             </div>
-            <div className="flex flex-col md:flex-row items-center justify-between mb-8 pt-4 gap-4">
+            <div className="flex flex-col md:flex-row items-center md:items-start justify-between mb-6 pt-4 gap-4">
               <div>
-                <h1 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">
+                <h1 className="text-2xl md:text-4xl text-center font-black uppercase italic tracking-tighter">
                   Waiting Room
                 </h1>
                 <p className="text-zinc-500 font-bold uppercase text-xs tracking-[0.2em] mt-2 md:mt-1">
@@ -99,7 +112,8 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
                   Game Code
                 </p>
                 <button
-                  className="bg-black text-white px-6 py-3 rounded-2xl font-black text-3xl uppercase tracking-widest flex items-center gap-3 min-w-[8ch]"
+                  className="bg-black text-white px-6 py-3 rounded-2xl font-black text-2xl md:text-3xl uppercase tracking-widest flex items-center
+                  gap-3 min-w-[8ch]"
                   type="button"
                   onClick={copyCode}
                 >
@@ -156,7 +170,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, onLeave, start
         <div className="w-full md:w-80 space-y-6">
           <div className="bg-black text-white p-8 rounded-[3rem] shadow-[8px_8px_0_0_#ef4444] flex flex-col gap-6">
             <div className="space-y-2">
-              <h3 className="text-yellow-400 font-black italic text-2xl uppercase">
+              <h3 className="text-yellow-400 font-black italic text-xl md:text-2xl uppercase">
                 Ready to Explode?
               </h3>
               <p className="text-zinc-400 text-xs font-bold leading-relaxed">

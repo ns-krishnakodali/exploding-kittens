@@ -43,6 +43,7 @@ import {
   PLAYER_TOOK_CARD,
   DREW_FROM_BOTTOM,
   STEAL_CARD,
+  MIN_CARDS_LEFT,
 } from '../../constants';
 import {
   getAllCardsImages,
@@ -916,7 +917,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
   return (
     <>
       <header
-        className="w-full border-b-4 border-black px-1 md:px-6 py-4 md:pt-4 md:pb-6 flex flex-col md:flex-row justify-between items-center gap-y-4
+        className="w-full border-b-4 border-black px-1 md:px-6 py-6 md:pt-4 md:pb-6 flex flex-col md:flex-row justify-between items-center gap-y-4
         shadow-[0_4px_0_0_#000]"
       >
         <div className="flex items-center gap-8">
@@ -926,7 +927,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
           >
             Exploding Kittens
           </div>
-          <div className="flex items-center gap-6 border-l-4 border-black/10 pl-6">
+          <div className="flex items-center border-l-4 border-black/10 pl-6">
             <div className="flex flex-col">
               <span className="text-xs font-black uppercase text-zinc-400 leading-none mb-1 tracking-widest">
                 Room Code
@@ -937,23 +938,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
             </div>
           </div>
         </div>
-        {cardsDeck?.length && (
-          <div className="flex items-start gap-6">
-            <button
-              className="bg-white border-4 border-black px-4 py-2 rounded-xl shadow-[2px_2px_0_0_#000] font-black italic uppercase text-xs hover:bg-zinc-200
-              transition-colors flex items-center gap-2"
-              onClick={leaveGame}
-            >
-              <LogOut size={14} />
-              Leave Match
-            </button>
-            <div className="bg-yellow-400 border-4 border-black px-4 py-2 rounded-xl shadow-[2px_2px_0_0_#000] flex items-center gap-2">
-              <span className="font-black italic uppercase text-xs tracking-tighter text-black">
-                Deck Size: {cardsDeck.length}
-              </span>
-            </div>
-          </div>
-        )}
+        <div className="hidden md:flex items-end">
+          <button
+            className="bg-white border-4 border-black px-3 py-2 rounded-xl shadow-[2px_2px_0_0_#000] font-black italic uppercase text-xs hover:bg-zinc-200
+              transition-colors flex items-center gap-2 text-black tracking-wide"
+            onClick={leaveGame}
+          >
+            <LogOut size={14} />
+            Leave Match
+          </button>
+        </div>
       </header>
       {isLoading ? (
         <Loading />
@@ -963,7 +957,20 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
             <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
           )}
           <div className="flex flex-col grow overflow-x-hidden">
-            <section className="p-6 md:p-8 flex flex-col items-center justify-center gap-10">
+            <section className="p-6 flex flex-col items-center justify-center gap-6 md:gap-3">
+              <div
+                className={`flex items-center justify-center gap-3 bg-yellow-400 border-4 border-black px-6 py-2 md:py-3 rounded-xl shadow-[2px_2px_0_0_#000]
+                  transition-all duration-300 ${cardsDeck.length <= MIN_CARDS_LEFT ? 'animate-pulse scale-105' : 'scale-100'}`}
+              >
+                <span className="font-black italic uppercase text-xs tracking-widest text-black">
+                  Cards Left
+                </span>
+                <span
+                  className={`font-black leading-none text-2xl ${cardsDeck.length <= MIN_CARDS_LEFT ? 'text-red-600' : 'text-black'}`}
+                >
+                  {cardsDeck.length}
+                </span>
+              </div>
               <div className="flex flex-row gap-15 md:gap-40 pt-2 items-center relative">
                 <div className="flex flex-col items-center gap-3">
                   <div className="relative group">
@@ -1048,15 +1055,15 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                   Feline Surveillance List
                 </h3>
               </div>
-              <div className="w-full flex justify-center px-6 py-4 relative z-10">
+              <div className="w-full flex justify-center px-2 md:px-6 py-4 relative z-10">
                 <div
-                  className={`min-h-16 md:max-w-6xl w-full flex flex-wrap md:flex-nowrap items-center justify-center gap-2 md:gap-4 px-6 py-3 rounded-2xl
-                  border-4 border-black transition-all duration-300 transform shadow-[4px_4px_0_0_#000] ${
+                  className={`min-h-24 md:min-h-16 md:max-w-6xl w-full flex flex-wrap md:flex-nowrap items-center justify-center gap-2 md:gap-4 px-6 py-3 rounded-2xl
+                  border-4 border-black transition-colors duration-300 transform shadow-[4px_4px_0_0_#000] ${
                     statusMessage
                       ? statusMessage.type === 'error'
-                        ? 'bg-red-600 text-white scale-105'
-                        : 'bg-white text-black scale-100'
-                      : 'bg-black/5 border-dashed border-black/10 scale-95 opacity-50'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white text-black'
+                      : 'bg-black/5 border-dashed border-black/10 opacity-50'
                   }`}
                 >
                   {statusMessage ? (
@@ -1072,7 +1079,9 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                     </>
                   ) : (
                     <span className="loading-dots font-bold text-black italic uppercase text-sm mx-auto tracking-widest">
-                      Awaiting Player Data
+                      {currentPlayerName !== playerName
+                        ? `Waiting on ${currentPlayerName}`
+                        : `Your move, ${currentPlayerName}`}
                       <span className="ml-0.5 dots" />
                     </span>
                   )}
@@ -1132,7 +1141,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                     {playerName?.[0]?.toUpperCase()}
                   </div>
                   <div>
-                    <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
+                    <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-none">
                       Your Arsenal
                     </h2>
                     <p
@@ -1566,6 +1575,16 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
               </div>
             </div>
           )}
+          <div className="md:hidden w-full flex justify-center mt-8 mb-6">
+            <button
+              className="bg-white border-4 border-black px-4 py-3 rounded-xl shadow-[2px_2px_0_0_#000] font-black italic uppercase text-xs hover:bg-zinc-200
+              transition-colors flex items-center gap-2 text-red-600 tracking-wide"
+              onClick={leaveGame}
+            >
+              <LogOut size={14} />
+              Leave Match
+            </button>
+          </div>
         </>
       )}
     </>

@@ -27,7 +27,7 @@ const App = () => {
     setLobbyId(lobbyDetails?.lobbyId);
     setGameId(lobbyDetails?.gameId);
     setPlayerName(lobbyDetails?.playerName);
-    setGameState(GAME_STATE.GAME);
+    setGameState(lobbyDetails?.gameState);
   }, []);
 
   const handleCreateGame = async (newPlayerName, pin) => {
@@ -35,6 +35,13 @@ const App = () => {
 
     const [newLobbyId, newGameId] = await createLobbyService();
     const gameStateInfo = await addPlayerToLobbyService(newLobbyId, newPlayerName, pin, true);
+
+    setStorageValue(LOBBY_DETAILS, {
+      lobbyId: newLobbyId,
+      gameId: newGameId,
+      playerName: newPlayerName,
+      gameState: gameStateInfo,
+    });
 
     setLoading(false);
     setLobbyId(newLobbyId);
@@ -60,6 +67,7 @@ const App = () => {
         lobbyId: existingLobbyId,
         gameId: displayCode,
         playerName: newPlayerName,
+        gameState: gameStateInfo,
       });
 
       setLobbyId(existingLobbyId);
@@ -77,7 +85,7 @@ const App = () => {
   const handleStartGame = () => {
     const status = startGameService(lobbyId, playerName);
     if (status) {
-      setStorageValue(LOBBY_DETAILS, { lobbyId, gameId, playerName });
+      setStorageValue(LOBBY_DETAILS, { lobbyId, gameId, playerName, gameState: GAME_STATE.GAME });
       updateLobbyStatusService(lobbyId, LOBBY_STATUS.IN_GAME);
       setGameState(GAME_STATE.GAME);
     } else {
@@ -85,10 +93,6 @@ const App = () => {
       updateLobbyStatusService(lobbyId, LOBBY_STATUS.WAITING);
       setGameState(GAME_STATE.LOBBY);
     }
-  };
-
-  const handleLeaveGame = () => {
-    setGameState(GAME_STATE.LANDING);
   };
 
   const startGame = () => {
@@ -115,8 +119,8 @@ const App = () => {
             gameId={gameId}
             playerName={playerName}
             onStart={handleStartGame}
-            onLeave={handleLeaveGame}
             startGame={startGame}
+            leaveGame={leaveGame}
           />
         )}
         {gameState === GAME_STATE.GAME && (

@@ -55,6 +55,8 @@ export const SELECT_PLAYER_PREFIX = 'Select a player to';
 
 export const LOBBY_DETAILS = 'LOBBY_DETAILS';
 
+export const MIN_CARDS_LEFT = 15;
+
 export const DRAW_CARD = 'Draw-Card';
 export const PLAY_CARD = 'Play-Card';
 export const STEAL_CARD = 'Steal-Card';

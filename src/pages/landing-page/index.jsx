@@ -7,22 +7,22 @@ export const LandingPage = ({ onCreate, onJoin }) => {
   const [code, setCode] = useState('');
 
   return (
-    <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-700">
+    <div className="flex flex-col items-center gap-6 px-1 md:px-0 animate-in fade-in zoom-in duration-700">
       <div className="text-center space-y-2">
-        <h1 className="text-4xl md:text-7xl font-black uppercase italic tracking-tighter leading-none text-black mt-4 drop-shadow-[6px_6px_0_#ef4444]">
+        <h1 className="text-3xl md:text-7xl font-black uppercase italic tracking-tighter leading-none text-black mt-4 drop-shadow-[6px_6px_0_#ef4444]">
           EXPLODING
           <span className="text-red-600 ml-4">KITTENS</span>
         </h1>
       </div>
-      <div className="w-full max-w-xl bg-white border-4 border-black p-10 rounded-[3rem] shadow-[10px_10px_0_0_#000] relative overflow-hidden">
+      <div className="w-full max-w-xl bg-white border-4 border-black px-8 py-6 md:p-10 rounded-[3rem] shadow-[10px_10px_0_0_#000] relative overflow-hidden">
         <div
-          className="absolute top-0 right-0 w-32 h-32 bg-yellow-400 border-b-4 border-l-4 border-black rounded-bl-[3rem]
+          className="absolute top-0 right-0 w-28 md:w-32 h-28 md:h-32 bg-yellow-400 border-b-4 border-l-4 border-black rounded-bl-[3rem]
           flex items-center justify-center -mr-4 -mt-4 transform rotate-12"
         >
           <Bomb size={48} className="text-black" />
         </div>
-        <div className="space-y-8 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6 md:space-y-8 relative z-10 px-4 md:px-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-1">
                 Your Identity
@@ -31,7 +31,7 @@ export const LandingPage = ({ onCreate, onJoin }) => {
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Survivor Name"
-                className="w-full bg-zinc-100 border-2 border-black rounded-2xl px-5 py-4 font-bold text-lg focus:ring-4 ring-red-200
+                className="w-full bg-zinc-100 border-2 border-black rounded-2xl px-5 py-4 font-bold text-md md:text-lg focus:ring-4 ring-red-200
                 outline-none transition-all"
               />
             </div>
@@ -45,7 +45,7 @@ export const LandingPage = ({ onCreate, onJoin }) => {
                 value={pin}
                 onChange={(event) => setPin(event.target?.value?.replace(/\D/g, ''))}
                 placeholder="••••"
-                className="w-full bg-zinc-100 border-2 border-black rounded-2xl px-5 py-4 font-bold text-lg tracking-[0.5em] focus:ring-4 ring-red-200
+                className="w-full bg-zinc-100 border-2 border-black rounded-2xl px-5 py-4 font-bold text-md md:text-lg tracking-[0.5em] focus:ring-4 ring-red-200
                 outline-none transition-all"
               />
             </div>
@@ -53,21 +53,21 @@ export const LandingPage = ({ onCreate, onJoin }) => {
           <button
             onClick={() => onCreate(name, pin)}
             disabled={!name || pin.length < 4}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-black italic text-xl py-4 px-2 md:py-6 rounded-3xl border-4 border-black
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-black italic text-lg md:text-xl py-4 px-2 md:py-6 rounded-3xl border-4 border-black
             shadow-[6px_6px_0_0_#000] active:translate-x-0.75 active:translate-y-0.75 active:shadow-none transition-all disabled:opacity-50
             disabled:cursor-not-allowed group flex items-center justify-center gap-2 md:gap-4 cursor-pointer"
           >
             <PlusCircle className="group-hover:rotate-90 transition-transform" />
             HOST NEW GAME
           </button>
-          <div className="relative flex items-center py-4">
+          <div className="relative flex items-center py-1 md:py-4">
             <div className="grow border-t-4 border-black border-dotted"></div>
             <span className="shrink mx-4 text-sm font-black italic uppercase text-zinc-400">
               OR JOIN EXISTING
             </span>
             <div className="grow border-t-4 border-black border-dotted"></div>
           </div>
-          <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="flex flex-col sm:flex-row gap-4">
             <input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
