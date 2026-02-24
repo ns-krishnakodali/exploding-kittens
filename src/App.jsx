@@ -22,7 +22,10 @@ const App = () => {
 
   useEffect(() => {
     const lobbyDetails = getStorageValue(LOBBY_DETAILS, {});
-    if (Object.keys(lobbyDetails).length === 0) return;
+    if (Object.keys(lobbyDetails).length === 0) {
+      setGameState(GAME_STATE.LANDING);
+      return;
+    }
 
     setLobbyId(lobbyDetails?.lobbyId);
     setGameId(lobbyDetails?.gameId);
@@ -109,7 +112,7 @@ const App = () => {
   return (
     <div className="text-black font-sans selection:bg-red-200">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <main className="mx-auto px-4 md:px-8 py-2">
+      <main className="mx-auto px-3 md:px-8 py-2">
         {gameState === GAME_STATE.LANDING && (
           <LandingPage onCreate={handleCreateGame} onJoin={handleJoinGame} />
         )}

@@ -971,7 +971,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                   {cardsDeck.length}
                 </span>
               </div>
-              <div className="flex flex-row gap-15 md:gap-40 pt-2 items-center relative">
+              <div className="flex flex-row items-center justify-center w-full gap-15 md:gap-40 pt-2 relative">
                 <div className="flex flex-col items-center gap-3">
                   <div className="relative group">
                     <div className="absolute inset-0 translate-x-3 translate-y-3 bg-black rounded-4xl" />
@@ -1078,7 +1078,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                       </span>
                     </>
                   ) : (
-                    <span className="loading-dots font-bold text-black italic uppercase text-sm mx-auto tracking-widest">
+                    <span className="font-bold text-black italic uppercase text-sm mx-auto tracking-widest">
                       {currentPlayerName !== playerName
                         ? `Waiting on ${currentPlayerName}`
                         : `Your move, ${currentPlayerName}`}
@@ -1165,11 +1165,11 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-8 gap-y-6 md:gap-x-6 md:gap-y-6 max-w-7xl mx-auto px-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-6 md:gap-x-6 md:gap-y-6 max-w-7xl mx-auto px-4 justify-center">
                 {playerCards.map(({ name: cardName, url }, idx) => (
                   <button
                     key={cardName + idx}
-                    className="w-42 h-54 md:w-60 md:h-72 aspect-3/4 border-4 border-black rounded-3xl p-1.5 md:p-1 flex flex-col items-center justify-center text-left
+                    className="w-42 h-54 lg:w-60 md:h-72 aspect-3/4 border-4 border-black rounded-3xl p-1.5 md:p-1 flex flex-col items-center justify-center text-left
                     transition-all group shadow-[4px_4px_0_0_#000] hover:-translate-y-4 hover:shadow-[10px_10px_0_0_#000] active:scale-95 disabled:opacity-50
                     disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100 card-enter"
                     disabled={
