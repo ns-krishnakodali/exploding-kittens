@@ -9,9 +9,13 @@ export const LandingPage = ({ onCreate, onJoin }) => {
   return (
     <div className="flex flex-col items-center gap-6 px-1 md:px-0 animate-in fade-in zoom-in duration-700">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl md:text-7xl font-black uppercase italic tracking-tighter leading-none text-black mt-4 drop-shadow-[6px_6px_0_#ef4444]">
-          EXPLODING
-          <span className="text-red-600 ml-4">KITTENS</span>
+        <h1 className="text-3xl md:text-7xl font-black uppercase italic tracking-wide md:tracking-tighter leading-none text-black mt-4">
+          <span className="[text-shadow:3px_3px_0_#ef4444] md:[text-shadow:5px_5px_0_#ef4444]">
+            EXPLODING
+          </span>
+          <span className="text-red-600 ml-2 md:ml-4 [text-shadow:3px_3px_0_#000000] md:[text-shadow:5px_5px_0_#000000]">
+            KITTENS
+          </span>
         </h1>
       </div>
       <div className="w-full max-w-xl bg-white border-4 border-black px-8 py-6 md:p-10 rounded-[3rem] shadow-[10px_10px_0_0_#000] relative overflow-hidden">

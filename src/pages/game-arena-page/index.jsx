@@ -917,10 +917,10 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
   return (
     <>
       <header
-        className="w-full border-b-4 border-black px-1 md:px-6 py-6 md:pt-4 md:pb-6 flex flex-col md:flex-row justify-between items-center gap-y-4
+        className="w-full border-b-4 border-black px-1 md:px-4 py-6 md:pt-4 md:pb-6 flex flex-col md:flex-row justify-between items-center
         shadow-[0_4px_0_0_#000]"
       >
-        <div className="flex items-center gap-8">
+        <div className="flex items-center justify-between md:justify-start md:gap-8 w-full md:w-auto">
           <div
             className="bg-red-600 text-white px-2 md:px-6 py-2 border-4 border-black shadow-[4px_4px_0_0_#000] font-black italic uppercase text-xl md:text-3xl
             tracking-tighter"
@@ -1391,7 +1391,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                     ) && (
                       <button
                         onClick={handleNopeRequest}
-                        className="w-fit bg-red-500 text-white font-black italic text-2xl px-4 py-4 rounded-2xl border-4 border-black shadow-[6px_6px_0_0_#000]
+                        className="w-fit bg-red-500 text-white font-black italic text-2xl px-4 py-4 rounded-2xl border-4 border-black shadow-[4px_4px_0_0_#000]
                         hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
                       >
                         <XCircle size={28} /> USE NOPE!
@@ -1399,7 +1399,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                     )}
                     <button
                       onClick={resolveNotifyRequest}
-                      className="w-fit bg-green-500 text-white font-black italic text-2xl px-6 py-4 rounded-2xl border-4 border-black shadow-[6px_6px_0_0_#000]
+                      className="w-fit bg-green-500 text-white font-black italic text-2xl px-6 py-4 rounded-2xl border-4 border-black shadow-[4px_4px_0_0_#000]
                       hover:bg-green-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
                     >
                       <Check size={28} /> OBLIGE REQUEST
@@ -1531,7 +1531,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
           {winnerName && (
             <div className="fixed inset-0 z-700 bg-black/95 flex items-center justify-center p-6 animate-in fade-in duration-500">
               <div
-                className="flex flex-col items-center max-w-2xl w-full bg-white border-12 border-black p-12 md:px-16 md:py-6 rounded-[5rem] text-center space-y-6
+                className="flex flex-col items-center max-w-2xl w-full bg-white border-12 border-black px-12 md:px-16 py-8 md:py-6 rounded-[5rem] text-center space-y-6
                 shadow-[10px_10px_0_0_#fbbf24] animate-in duration-700 relative overflow-hidden"
               >
                 <div className="absolute top-0 left-0 w-32 h-32 bg-yellow-400 -ml-16 -mt-16 rotate-45 border-8 border-black" />
@@ -1562,8 +1562,8 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                 </div>
                 <button
                   onClick={leaveGame}
-                  className="w-fit relative z-10 bg-red-600 text-white font-black italic text-md md:text-2xl p-6 rounded-[3rem] border-8 border-black
-                  shadow-[8px_8px_0_0_#000] hover:bg-red-700 transition-all flex items-center justify-center gap-4"
+                  className="w-fit relative z-10 bg-red-600 text-white font-black italic text-md md:text-2xl p-4 md:p-5 rounded-[3rem] border-8 border-black
+                  shadow-[4px_4px_0_0_#000] hover:bg-red-700 transition-all flex items-center justify-center gap-2"
                 >
                   <RotateCcw size={32} /> RESTART BATTLE
                 </button>
