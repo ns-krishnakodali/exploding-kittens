@@ -21,7 +21,7 @@ export const LandingPage = ({ onCreate, onJoin }) => {
       <div className="w-full max-w-xl bg-white border-4 border-black px-8 py-6 md:p-10 rounded-[3rem] shadow-[10px_10px_0_0_#000] relative overflow-hidden">
         <div
           className="absolute top-0 right-0 w-28 md:w-32 h-28 md:h-32 bg-yellow-400 border-b-4 border-l-4 border-black rounded-bl-[3rem]
-          flex items-center justify-center -mr-4 -mt-4 transform rotate-12"
+          flex items-center justify-center -mr-4 md:-mr-6 -mt-5 transform -rotate-6"
         >
           <Bomb size={48} className="text-black" />
         </div>
@@ -33,7 +33,7 @@ export const LandingPage = ({ onCreate, onJoin }) => {
               </label>
               <input
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => setName(event.target?.value)}
                 placeholder="Survivor Name"
                 className="w-full bg-zinc-100 border-2 border-black rounded-2xl px-5 py-4 font-bold text-md md:text-lg focus:ring-4 ring-red-200
                 outline-none transition-all"
@@ -55,7 +55,7 @@ export const LandingPage = ({ onCreate, onJoin }) => {
             </div>
           </div>
           <button
-            onClick={() => onCreate(name, pin)}
+            onClick={() => onCreate(name?.toUpperCase(), pin)}
             disabled={!name || pin.length < 4}
             className="w-full bg-red-600 hover:bg-red-700 text-white font-black italic text-lg md:text-xl py-4 px-2 md:py-6 rounded-3xl border-4 border-black
             shadow-[6px_6px_0_0_#000] active:translate-x-0.75 active:translate-y-0.75 active:shadow-none transition-all disabled:opacity-50
@@ -76,14 +76,14 @@ export const LandingPage = ({ onCreate, onJoin }) => {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="GAME CODE"
-              className="w-full bg-yellow-50 border-2 border-black rounded-2xl px-5 py-4 font-black tracking-widest text-xl outline-none
+              className="w-full bg-yellow-50 border-2 border-black rounded-2xl px-5 py-4 font-black tracking-widest text-lg md:text-xl outline-none
             focus:bg-yellow-100 transition-all uppercase"
             />
             <button
-              onClick={() => onJoin(code, name, pin)}
+              onClick={() => onJoin(code, name?.toUpperCase(), pin)}
               disabled={!name || pin.length < 4 || !code}
-              className="w-full sm:w-auto px-10 py-3 bg-black text-white font-black italic text-xl rounded-2xl
-            hover:bg-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-10 py-3 bg-black text-white font-black italic text-lg md:text-xl rounded-2xl hover:bg-zinc-800 transition-all
+              disabled:opacity-50 disabled:cursor-not-allowed"
             >
               JOIN
             </button>

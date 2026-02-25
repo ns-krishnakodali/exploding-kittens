@@ -75,3 +75,7 @@ export const DREW_FROM_BOTTOM = 'Drew from the Bottom!';
 export const CHOOSE_ANOTHER_PLAYER = 'You must choose another player';
 
 export const WINNING_MESSAGE = "The kittens exploded. Your ego didn't, Champion!";
+
+// Links
+export const INSTRUCTIONS_LINK =
+  'https://cdn.shopify.com/s/files/1/0345/9180/1483/files/ekpp-instructions-english.pdf?v=1743819467';
