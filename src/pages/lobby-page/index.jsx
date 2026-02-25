@@ -248,8 +248,8 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, startGame, lea
       {showInstructionsModal && (
         <div className="fixed inset-0 z-800 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div
-            className="max-w-3xl w-full bg-white border-10 border-black px-8 md:px-12 py-12 md:py-10 rounded-[4rem] shadow-[10px_10px_0_0_#000] animate-in zoom-in
-            overflow-y-auto max-h-[85vh] modal-scrollbar relative"
+            className="max-w-3xl w-full bg-white border-10 border-black px-8 md:px-10 py-12 md:py-10 rounded-[4rem] shadow-[10px_10px_0_0_#000] animate-in zoom-in
+            overflow-y-auto max-h-[90svh] md:max-h-[85vh] modal-scrollbar relative"
           >
             <button
               onClick={() => setShowInstructionsModal(false)}
@@ -315,7 +315,7 @@ export const LobbyPage = ({ lobbyId, gameId, playerName, onStart, startGame, lea
                       <p className="font-bold text-zinc-500 uppercase text-sm leading-snug">
                         Unlike the offline version,{' '}
                         <span className="text-red-700 underline">Nope</span> cannot be played on
-                        instant actions{' '}
+                        instant actions cards like{' '}
                         <span className="text-amber-800 underline"> Draw from the Bottom</span>,
                         <span className="text-yellow-500 underline"> See the Future</span>, and
                         <span className="text-indigo-800 underline"> Alter the Future</span>.

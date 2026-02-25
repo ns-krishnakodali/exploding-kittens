@@ -1203,7 +1203,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
             <div className="fixed inset-0 z-500 bg-black/60 flex items-center justify-center p-6 animate-in fade-in duration-300">
               <form onSubmit={handleAlterFuture}>
                 <div
-                  className="max-w-4xl max-h-[calc(100svh-2rem)] md:max-h-[90vh] w-full bg-white border-10 border-black p-8 md:px-12 md:py-8 rounded-[4rem]
+                  className="max-w-4xl max-h-[95svh] md:max-h-[90vh] w-full bg-white border-10 border-black p-8 md:px-12 md:py-8 rounded-[4rem]
                   text-center space-y-6 shadow-[10px_10px_0_0_#000] animate-in zoom-in overflow-y-auto"
                 >
                   <div className="space-y-2 mb-6">
@@ -1413,7 +1413,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
           {showCardModal && (
             <div className="fixed inset-0 z-550 bg-black/90 flex items-center justify-center p-6 animate-in fade-in duration-300">
               <div
-                className="max-w-6xl max-h-[calc(100svh-2rem)] md:max-h-[90vh] w-full bg-white border-10 border-black p-8 md:py-6 md:px-12 rounded-[4rem]
+                className="max-w-6xl max-h-[95svh] md:max-h-[90vh] w-full bg-white border-10 border-black p-8 md:py-6 md:px-12 rounded-[4rem]
                 text-center space-y-8 shadow-[10px_10px_0_0_#000] animate-in zoom-in overflow-y-auto modal-scrollbar relative"
               >
                 <div className="space-y-3">
