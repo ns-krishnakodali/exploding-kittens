@@ -44,6 +44,7 @@ import {
   DREW_FROM_BOTTOM,
   STEAL_CARD,
   MIN_CARDS_LEFT,
+  EXPLOSION_MESSAGE,
 } from '../../constants';
 import {
   getAllCardsImages,
@@ -128,7 +129,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
             },
             ...usedCardsDetails,
           ],
-          `${notifyRequest?.from} stealed ${notifyRequest.cardType} Card from ${notifyRequest?.to}`
+          `${notifyRequest?.from} stole ${notifyRequest.cardType} Card from ${notifyRequest?.to}`
         );
 
         if (!status) {
@@ -378,7 +379,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
           null,
           updatedPlayerCards?.map((card) => card?.name) || [],
           [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
-          `${playerName} Altered the Future!`
+          `${playerName} Altering the Future!`
         );
 
         if (status) {
@@ -447,7 +448,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
               [],
             updatedUsedCardsDetails,
             cardsCount === 2
-              ? `${playerName} played 2 matching Cat Cards targetting ${selectedPlayerName}.`
+              ? `${playerName} played 2 matching Cat Cards targetting ${selectedPlayerName}`
               : ''
           );
 
@@ -561,7 +562,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
             null,
             updatedPlayerCards?.map((card) => card?.name) || [],
             [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
-            `${playerName} played Nope for no reason.`
+            `Hmm, ${playerName} played Nope for no reason`
           );
 
           if (!status) {
@@ -608,7 +609,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
           null,
           updatedPlayerCards?.map((card) => card?.name) || [],
           [{ playerName, cardName, action: PLAY_CARD }, ...usedCardsDetails],
-          `${playerName} Shuffled the deck.`,
+          `${playerName} Shuffled the deck`,
           null,
           { original: shuffledCardsDeck, backup: cardsDeck }
         );
@@ -631,7 +632,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
             { playerName, selectedPlayerName: nextPlayerName, cardName, action: PLAY_CARD },
             ...usedCardsDetails,
           ],
-          `${playerName} played Skip and dodged turn.`,
+          `${playerName} played Skip and dodged turn`,
           attackStack - 1
         );
 
@@ -797,7 +798,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
         },
         ...usedCardsDetails,
       ],
-      `${notifyRequest?.from} stealed Random Card from ${notifyRequest?.to}`
+      `${notifyRequest?.from} stole Random Card from ${notifyRequest?.to}`
     );
 
     if (!status) {
@@ -891,7 +892,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
         { playerName, cardName: cardsDeck[explosionCardIdx], action: DRAW_CARD },
         ...usedCardsDetails,
       ],
-      `BOOM! ${playerName} just exploded, LOL!`
+      `${EXPLOSION_MESSAGE}! ${playerName} just exploded, LOL!`
     );
 
     setExplosionCardIdx(null);
@@ -960,15 +961,15 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
             <section className="p-6 flex flex-col items-center justify-center gap-6 md:gap-3">
               <div
                 className={`flex items-center justify-center gap-3 bg-yellow-400 border-4 border-black px-6 py-2 md:py-3 rounded-xl shadow-[2px_2px_0_0_#000]
-                  transition-all duration-300 ${cardsDeck.length <= MIN_CARDS_LEFT ? 'animate-pulse scale-105' : 'scale-100'}`}
+                  transition-all duration-300 ${[cardsDeck?.length ?? 0] <= MIN_CARDS_LEFT ? 'animate-pulse scale-105' : 'scale-100'}`}
               >
                 <span className="font-black italic uppercase text-xs tracking-widest text-black">
                   Cards Left
                 </span>
                 <span
-                  className={`font-black leading-none text-2xl ${cardsDeck.length <= MIN_CARDS_LEFT ? 'text-red-600' : 'text-black'}`}
+                  className={`font-black leading-none text-2xl ${[cardsDeck?.length ?? 0] <= MIN_CARDS_LEFT ? 'text-red-600' : 'text-black'}`}
                 >
-                  {cardsDeck.length}
+                  {[cardsDeck?.length ?? 0]}
                 </span>
               </div>
               <div className="flex flex-row items-center justify-center w-full gap-15 md:gap-40 pt-2 relative">
@@ -1502,7 +1503,7 @@ export const GameArenaPage = ({ lobbyId, gameId, playerName, leaveGame }) => {
                           />
                         </div>
                         <p className="text-xs font-black uppercase text-black/60 tracking-widest">
-                          Deck Size: {cardsDeck?.length || 0}
+                          Deck Size: {cardsDeck?.length ?? 0}
                         </p>
                       </div>
                       <button

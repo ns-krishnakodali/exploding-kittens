@@ -1,6 +1,13 @@
 import { get, ref, remove, runTransaction, update } from 'firebase/database';
 
-import { CARD_TYPES, CAT_CARD_NAMES, DRAW_CARD, PLAY_CARD, WILD_CAT_CARD } from '../constants';
+import {
+  CARD_TYPES,
+  CAT_CARD_NAMES,
+  DRAW_CARD,
+  EXPLOSION_MESSAGE,
+  PLAY_CARD,
+  WILD_CAT_CARD,
+} from '../constants';
 import { db } from '../firebase';
 
 export const startGameService = async (lobbyId, hostName) => {
@@ -183,7 +190,8 @@ export const updateDrawCardService = async (
     if (statusMessage) updates[`/lobby/${lobbyId}/statusMessage`] = statusMessage;
 
     await runTransaction(ref(db, `/lobby/${lobbyId}/attackStack`), (currentAttackStack) => {
-      if (!currentAttackStack || currentAttackStack <= 0) return currentAttackStack;
+      if (statusMessage && statusMessage?.includes(EXPLOSION_MESSAGE)) return 0;
+      if (!currentAttackStack || currentAttackStack <= 0) return currentAttackStack ?? 0;
       return currentAttackStack - 1;
     });
 

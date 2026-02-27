@@ -52,6 +52,7 @@ export const LOADING_MESSAGES = [
 export const ATTACK_PREFIX = 'Attack';
 export const EXPLOSION_PREFIX = 'Explo';
 export const SELECT_PLAYER_PREFIX = 'Select a player to';
+export const EXPLOSION_MESSAGE = 'BOOM';
 
 export const LOBBY_DETAILS = 'LOBBY_DETAILS';
 
