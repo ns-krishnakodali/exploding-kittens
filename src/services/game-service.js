@@ -241,7 +241,7 @@ export const updateCardsDeckService = async (lobbyId, cardsDeck) => {
   try {
     await update(ref(db, `lobby/${lobbyId}`), {
       cardsDeck,
-      statusMessage: '',
+      statusMessage: 'Updated deck',
     });
     return true;
   } catch (error) {
