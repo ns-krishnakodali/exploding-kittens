@@ -59,3 +59,41 @@ export const updateLobbyStatusService = async (lobbyId, status) => {
   const lobbyRef = ref(db, `lobby/${lobbyId}`);
   await update(lobbyRef, { status });
 };
+
+export const deleteCancelledLobbiesService = async () => {
+  const [lobbiesSnapshot, codesSnapshot] = await Promise.all([
+    get(ref(db, 'lobby')),
+    get(ref(db, 'lobbyCodes')),
+  ]);
+
+  if (!lobbiesSnapshot.exists()) {
+    return { deletedCount: 0 };
+  }
+
+  const lobbies = lobbiesSnapshot.val();
+  const codes = codesSnapshot.exists() ? codesSnapshot.val() : {};
+
+  const cancelledIds = Object.entries(lobbies)
+    .filter(([, lobby]) => lobby?.status === LOBBY_STATUS.CANCELLED)
+    .map(([id]) => id);
+
+  if (cancelledIds.length === 0) {
+    return { deletedCount: 0 };
+  }
+
+  const cancelledIdSet = new Set(cancelledIds);
+  const updates = {};
+
+  for (const id of cancelledIds) {
+    updates[`lobby/${id}`] = null;
+  }
+  for (const [code, lobbyId] of Object.entries(codes)) {
+    if (cancelledIdSet.has(lobbyId)) {
+      updates[`lobbyCodes/${code}`] = null;
+    }
+  }
+
+  await update(ref(db), updates);
+
+  return { deletedCount: cancelledIds.length };
+};
